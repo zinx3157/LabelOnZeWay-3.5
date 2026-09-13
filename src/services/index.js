@@ -2,12 +2,14 @@ import { createStorageService } from './storage.js';
 import { createSupabaseService } from './supabase.js';
 import { createAuthService } from './auth.js';
 import { createSyncService } from './sync.js';
+import { createPrintService } from './print.js';
 
 export function createServices({ store }) {
   const storage = createStorageService();
   const supabase = createSupabaseService();
   const auth = createAuthService({ supabase, store });
   const sync = createSyncService({ supabase, store });
+  const print = createPrintService({ supabase, store });
 
   const lifecycle = {
     async start() {
@@ -30,7 +32,7 @@ export function createServices({ store }) {
     supabase,
     auth,
     sync,
-    print: { async start() { return { status: 'not-configured' }; } },
+    print,
     ocr: { async start() { return { status: 'not-configured' }; } },
     messaging: { async start() { return { status: 'not-configured' }; } },
   };
