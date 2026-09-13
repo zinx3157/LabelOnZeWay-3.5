@@ -22,6 +22,11 @@ export function createServices({ store }) {
       const local = storage.load();
       if (Object.keys(local).length) store.setState(local);
       store.subscribe((state) => storage.save(state));
+      const testMode = typeof location !== 'undefined' && new URLSearchParams(location.search).has('test');
+      if (testMode) {
+        store.setState({ sync: { status: 'test-local', conflict: false } });
+        return;
+      }
       try {
         const session = await auth.start();
         if (session) await workspace.ensureSelected();
