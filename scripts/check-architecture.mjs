@@ -20,6 +20,7 @@ const files = await walk('src');
 const banned = [
   /document\.write\s*\(/,
   /document\.open\s*\(/,
+  /\.innerHTML\s*=/,
   /stopImmediatePropagation\s*\(/,
   /MutationObserver\s*\(/,
   /setTimeout\s*\(/,
