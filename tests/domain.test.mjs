@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { calculateCollect } from '../src/domain/money.js';
 import { makePickId } from '../src/domain/ids.js';
 import { reconciliationTotals, updateParcelStatuses } from '../src/domain/manifest.js';
+import { extractContact } from '../src/services/ocr.js';
 
 test('Collect is quantity multiplied by unit price', () => {
   assert.equal(calculateCollect(3, 12500), 37500);
@@ -28,6 +29,14 @@ test('Reconciliation uses one consistent financial model', () => {
     { qty: 3, collect: 2500, status: 'ready' },
   ]);
   assert.deepEqual(totals, { parcels: 2, quantity: 5, collect: 3500, deliveredCollect: 1000, outstandingCollect: 2500 });
+});
+
+test('OCR contact parser accepts Madagascar mobile prefixes and filters address noise', () => {
+  const contact = extractContact('Rakoto Jean\nLOT 22 RUE Andraharo\n034 12 345 67\nAntananarivo');
+  assert.equal(contact.name, 'Rakoto Jean');
+  assert.equal(contact.phone, '0341234567');
+  assert.match(contact.address, /Andraharo/);
+  assert.doesNotMatch(contact.address, /LOT|RUE/i);
 });
 
 test('Repeated status/reconciliation loop remains deterministic', () => {
