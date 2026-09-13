@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "check": "node scripts/check-structure.mjs && node scripts/check-architecture.mjs",
-    "test": "npm run check"
+    "test:domain": "node --test tests/*.test.mjs",
+    "test": "npm run check && npm run test:domain"
   },
   "engines": {
     "node": ">=20"

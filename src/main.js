@@ -3,6 +3,10 @@ import './styles/tokens.css';
 import './styles/app.css';
 import './styles/workflows.css';
 
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('./public/sw.js').catch((error) => console.warn('Service worker registration failed', error));
+}
+
 bootstrap(document.querySelector('#app')).catch((error) => {
   console.error(error);
   const root = document.querySelector('#app');

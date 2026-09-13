@@ -1,0 +1,10 @@
+{
+  "name": "LabelOnZeWay 3.5",
+  "short_name": "LabelOnZeWay",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#061015",
+  "theme_color": "#061015",
+  "description": "LabelOnZeWay logistics operations workspace"
+}
