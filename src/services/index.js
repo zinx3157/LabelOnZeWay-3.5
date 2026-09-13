@@ -1,21 +1,37 @@
+import { createStorageService } from './storage.js';
+import { createSupabaseService } from './supabase.js';
+import { createAuthService } from './auth.js';
+import { createSyncService } from './sync.js';
+
 export function createServices({ store }) {
+  const storage = createStorageService();
+  const supabase = createSupabaseService();
+  const auth = createAuthService({ supabase, store });
+  const sync = createSyncService({ supabase, store });
+
   const lifecycle = {
     async start() {
-      store.setState({ sync: { status: 'idle', conflict: false } });
+      const local = storage.load();
+      if (Object.keys(local).length) store.setState(local);
+      store.subscribe((state) => storage.save(state));
+      try {
+        await auth.start();
+        store.setState({ sync: { status: 'ready', conflict: false } });
+      } catch (error) {
+        console.warn('Cloud start failed; continuing locally', error);
+        store.setState({ sync: { status: 'offline', conflict: false } });
+      }
     },
   };
 
-  const unsupported = (name) => ({
-    async start() { return { status: 'not-configured', service: name }; },
-  });
-
   return {
     lifecycle,
-    auth: unsupported('auth'),
-    sync: unsupported('sync'),
-    supabase: unsupported('supabase'),
-    print: unsupported('print'),
-    ocr: unsupported('ocr'),
-    messaging: unsupported('messaging'),
+    storage,
+    supabase,
+    auth,
+    sync,
+    print: { async start() { return { status: 'not-configured' }; } },
+    ocr: { async start() { return { status: 'not-configured' }; } },
+    messaging: { async start() { return { status: 'not-configured' }; } },
   };
 }
