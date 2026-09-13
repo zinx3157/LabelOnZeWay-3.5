@@ -1,4 +1,5 @@
 import { action } from '../components/form.js';
+import { heading } from '../components/view.js';
 import { updateParcelStatuses } from '../domain/manifest.js';
 
 export function createBatchModule({ store }) {
@@ -6,7 +7,7 @@ export function createBatchModule({ store }) {
     render(state) {
       const section = document.createElement('section');
       section.className = 'screen';
-      section.innerHTML = '<div class="screen-heading"><div><h1>Batch</h1><p>Prepare ready parcels for dispatch.</p></div></div>';
+      section.append(heading('Batch', 'Prepare ready parcels for dispatch.'));
       const ready = state.parcels.filter((parcel) => parcel.status === 'ready');
       const card = document.createElement('div');
       card.className = 'workspace-card';
