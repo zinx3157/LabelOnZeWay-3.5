@@ -52,13 +52,45 @@ export function createLabelModule({ store, services }) {
         const name = field('Customer name', 'name', draft.customer.name, { placeholder: 'Full name' });
         const phone = field('Phone', 'phone', draft.customer.phone, { type: 'tel', inputmode: 'tel', placeholder: '032 / 033 / 034 / 035 / 037 / 038 / 039' });
         const address = field('Address', 'address', draft.customer.address, { multiline: true, placeholder: 'Delivery address' });
+
+        const scanCard = document.createElement('div');
+        scanCard.className = 'scan-row';
+        const photo = document.createElement('input');
+        photo.type = 'file';
+        photo.accept = 'image/*';
+        photo.setAttribute('capture', 'environment');
+        photo.setAttribute('aria-label', 'Customer address photo');
+        const scan = action('Scan photo');
+        const scanStatus = document.createElement('small');
+        scanStatus.textContent = 'OCR loads only when you scan.';
+        scan.addEventListener('click', async () => {
+          const image = photo.files?.[0];
+          if (!image) { scanStatus.textContent = 'Choose or take a photo first.'; return; }
+          scan.disabled = true;
+          scan.textContent = 'Scanning…';
+          scanStatus.textContent = 'Reading contact details…';
+          try {
+            const contact = await services.ocr.recognize(image);
+            if (contact.name && !name.input.value.trim()) name.input.value = contact.name;
+            if (contact.phone) phone.input.value = contact.phone;
+            if (contact.address) address.input.value = contact.address;
+            scanStatus.textContent = 'Scan complete. Check the extracted details before continuing.';
+          } catch (error) {
+            scanStatus.textContent = `Scan failed: ${error.message}`;
+          } finally {
+            scan.disabled = false;
+            scan.textContent = 'Scan photo';
+          }
+        });
+        scanCard.append(photo, scan, scanStatus);
+
         const next = action('Continue to parcel', 'primary');
         next.addEventListener('click', () => {
           const customer = { name: name.input.value.trim(), phone: phone.input.value.trim(), address: address.input.value.trim() };
           if (!customer.name) { name.input.focus(); return; }
           store.update((current) => ({ ...current, labelDraft: { ...current.labelDraft, step: 2, customer } }));
         });
-        panel.append(name.wrap, phone.wrap, address.wrap, next);
+        panel.append(scanCard, name.wrap, phone.wrap, address.wrap, next);
       }
 
       if (draft.step === 2) {
