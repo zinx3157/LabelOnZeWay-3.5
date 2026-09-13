@@ -3,8 +3,11 @@ import { chromium } from 'playwright';
 
 const BASE = process.env.LZ35_TEST_URL || 'http://127.0.0.1:4173/?test=1';
 const viewports = [
-  { name: 'desktop', width: 1440, height: 900 },
-  { name: 'iphone', width: 390, height: 844 },
+  { name: 'desktop', width: 1440, height: 900, mobile: false },
+  { name: 'iphone-portrait', width: 390, height: 844, mobile: true },
+  { name: 'iphone-landscape', width: 844, height: 390, mobile: false },
+  { name: 'android-portrait', width: 360, height: 800, mobile: true },
+  { name: 'android-landscape', width: 800, height: 360, mobile: true },
 ];
 
 const browser = await chromium.launch({ headless: true });
@@ -27,12 +30,12 @@ try {
       mobile: getComputedStyle(document.querySelector('.mobile-nav')).display,
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
     }));
-    if (viewport.name === 'desktop') {
-      assert.notEqual(layout.sidebar, 'none', 'Desktop sidebar must be visible');
-      assert.equal(layout.mobile, 'none', 'Desktop mobile nav must be hidden');
+    if (!viewport.mobile) {
+      assert.notEqual(layout.sidebar, 'none', `${viewport.name} sidebar must be visible`);
+      assert.equal(layout.mobile, 'none', `${viewport.name} mobile nav must be hidden`);
     } else {
-      assert.equal(layout.sidebar, 'none', 'Mobile sidebar must be hidden');
-      assert.notEqual(layout.mobile, 'none', 'Mobile nav must be visible');
+      assert.equal(layout.sidebar, 'none', `${viewport.name} sidebar must be hidden`);
+      assert.notEqual(layout.mobile, 'none', `${viewport.name} mobile nav must be visible`);
     }
     assert.equal(layout.overflow, false, `${viewport.name} home must not overflow horizontally`);
 
@@ -49,7 +52,7 @@ try {
     assert.match(await page.locator('.label-preview').innerText(), /UAT Customer <script>alert\(1\)<\/script>/);
     assert.equal(await page.locator('.label-preview script').count(), 0, 'Customer input must never become executable markup');
     await page.getByRole('button', { name: 'Save label' }).click();
-    await page.locator('table, .table-card').waitFor();
+    await page.locator('table').waitFor();
     assert.match(await page.locator('body').innerText(), /UAT Customer/);
     assert.equal(await page.locator('body script').count(), 1, 'Only the application module script should exist');
 
