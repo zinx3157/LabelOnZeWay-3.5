@@ -17,6 +17,14 @@ function csvEscape(value) {
   return `"${text.replaceAll('"', '""')}"`;
 }
 
+function validateBackup(snapshot) {
+  if (!snapshot || String(snapshot.version) !== '3.5') throw new Error('This is not a LabelOnZeWay 3.5 backup.');
+  for (const key of ['customers','parcels','archive']) {
+    if (!Array.isArray(snapshot[key])) throw new Error(`Backup field ${key} is invalid.`);
+  }
+  return snapshot;
+}
+
 export function createReportsModule({ store }) {
   return {
     render(state) {
@@ -39,12 +47,33 @@ export function createReportsModule({ store }) {
         download(`labelonzeway-backup-${new Date().toISOString().slice(0,10)}.json`, 'application/json', JSON.stringify(snapshot, null, 2));
       });
 
+      const restoreInput = document.createElement('input');
+      restoreInput.type = 'file';
+      restoreInput.accept = 'application/json,.json';
+      restoreInput.hidden = true;
+      const restore = action('Restore JSON backup');
+      const status = document.createElement('p');
+      restore.addEventListener('click', () => restoreInput.click());
+      restoreInput.addEventListener('change', async () => {
+        const file = restoreInput.files?.[0];
+        if (!file) return;
+        try {
+          const snapshot = validateBackup(JSON.parse(await file.text()));
+          store.setState({ customers: snapshot.customers, parcels: snapshot.parcels, archive: snapshot.archive, workspace: snapshot.workspace || state.workspace });
+          status.textContent = `Backup restored: ${snapshot.parcels.length} active parcels, ${snapshot.archive.length} archived.`;
+        } catch (error) {
+          status.textContent = `Restore rejected: ${error.message}`;
+        } finally {
+          restoreInput.value = '';
+        }
+      });
+
       const summary = document.createElement('p');
       summary.textContent = `${state.parcels.length} active parcels · ${state.archive.length} archived · ${formatAr(state.parcels.reduce((sum, item) => sum + Number(item.collect || 0), 0))} Ar active Collect`;
       const row = document.createElement('div');
       row.className = 'button-row';
-      row.append(exportCsv, backup);
-      card.append(summary, row);
+      row.append(exportCsv, backup, restore, restoreInput);
+      card.append(summary, row, status);
       section.append(card);
       return section;
     },
