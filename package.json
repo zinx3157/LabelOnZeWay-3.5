@@ -1,0 +1,13 @@
+{
+  "name": "labelonzeway-3.5",
+  "version": "3.5.0-dev",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/check-structure.mjs",
+    "test": "npm run check"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
