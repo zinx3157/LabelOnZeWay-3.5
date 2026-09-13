@@ -1,0 +1,33 @@
+name: LabelOnZeWay 3.5 Browser Regression
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Domain and architecture tests
+        run: npm test
+      - name: Install Playwright 1.63.0
+        run: npm install --no-save playwright@1.63.0
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start static UAT server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/lz35-http.log 2>&1 &
+          echo $! > /tmp/lz35-http.pid
+          sleep 2
+      - name: Run repeated desktop and phone flows
+        run: node tests/browser.mjs
