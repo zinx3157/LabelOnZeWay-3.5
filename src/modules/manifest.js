@@ -1,13 +1,21 @@
 import { formatAr } from '../domain/money.js';
 import { PARCEL_STATUSES, updateParcelStatuses } from '../domain/manifest.js';
 import { action } from '../components/form.js';
+import { heading } from '../components/view.js';
+
+function cell(label, value) {
+  const td = document.createElement('td');
+  td.dataset.label = label;
+  td.textContent = value ?? '';
+  return td;
+}
 
 export function createManifestModule({ store }) {
   return {
     render(state) {
       const section = document.createElement('section');
       section.className = 'screen';
-      section.innerHTML = '<div class="screen-heading"><div><h1>Manifest</h1><p>Unified operational manifest with bulk status updates.</p></div></div>';
+      section.append(heading('Manifest', 'Unified operational manifest with bulk status updates.'));
 
       if (!state.parcels.length) {
         const empty = document.createElement('div');
@@ -41,8 +49,16 @@ export function createManifestModule({ store }) {
       const tableWrap = document.createElement('div');
       tableWrap.className = 'table-card';
       const table = document.createElement('table');
-      table.innerHTML = '<thead><tr><th>Select</th><th>Pick ID</th><th>Customer</th><th>Qty</th><th>Unit</th><th>Collect</th><th>Status</th></tr></thead>';
+      const thead = document.createElement('thead');
+      const headRow = document.createElement('tr');
+      ['Select','Pick ID','Customer','Qty','Unit','Collect','Status'].forEach((name) => {
+        const th = document.createElement('th');
+        th.textContent = name;
+        headRow.append(th);
+      });
+      thead.append(headRow);
       const body = document.createElement('tbody');
+
       for (const parcel of state.parcels) {
         const row = document.createElement('tr');
         const choose = document.createElement('input');
@@ -53,22 +69,27 @@ export function createManifestModule({ store }) {
           selection.textContent = `${selected.size} selected`;
           apply.disabled = selected.size === 0;
         });
-        const cell = document.createElement('td');
-        cell.dataset.label = 'Select';
-        cell.append(choose);
-        row.append(cell);
-        for (const [label,value] of [
-          ['Pick ID', parcel.pickId],['Customer',parcel.customer.name],['Qty',parcel.qty],['Unit',formatAr(parcel.unitPrice)],['Collect',formatAr(parcel.collect)]
-        ]) {
-          const td = document.createElement('td'); td.dataset.label = label; td.textContent = value; row.append(td);
-        }
+        const chooseCell = document.createElement('td');
+        chooseCell.dataset.label = 'Select';
+        chooseCell.append(choose);
+        row.append(
+          chooseCell,
+          cell('Pick ID', parcel.pickId),
+          cell('Customer', parcel.customer?.name || ''),
+          cell('Qty', String(parcel.qty ?? '')),
+          cell('Unit', formatAr(parcel.unitPrice)),
+          cell('Collect', formatAr(parcel.collect)),
+        );
         const statusCell = document.createElement('td');
         statusCell.dataset.label = 'Status';
-        statusCell.innerHTML = `<span class="status-pill">${parcel.status}</span>`;
+        const pill = document.createElement('span');
+        pill.className = 'status-pill';
+        pill.textContent = parcel.status;
+        statusCell.append(pill);
         row.append(statusCell);
         body.append(row);
       }
-      table.append(body);
+      table.append(thead, body);
       tableWrap.append(table);
       section.append(toolbar, tableWrap);
       return section;

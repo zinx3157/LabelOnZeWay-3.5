@@ -1,20 +1,28 @@
 import { trackingMilestone } from '../domain/tracking.js';
+import { heading, textStack } from '../components/view.js';
 
 export function createTrackingModule() {
   return {
     render(state) {
       const section = document.createElement('section');
       section.className = 'screen';
-      section.innerHTML = '<div class="screen-heading"><div><h1>Tracking</h1><p>Read-only parcel status view.</p></div></div>';
+      section.append(heading('Tracking', 'Read-only parcel status view.'));
       const list = document.createElement('div');
       list.className = 'card-list';
-      if (!state.parcels.length) list.innerHTML = '<div class="empty-state">No active parcels to track.</div>';
+      if (!state.parcels.length) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.textContent = 'No active parcels to track.';
+        list.append(empty);
+      }
       for (const parcel of state.parcels) {
         const card = document.createElement('article');
         card.className = 'card';
-        const text = document.createElement('div');
-        text.innerHTML = `<strong>${parcel.pickId} · ${parcel.customer?.name || ''}</strong><span>${trackingMilestone(parcel.status)}</span><small>${parcel.trackingToken || 'Tracking token pending'}</small>`;
-        card.append(text);
+        card.append(textStack([
+          ['strong', `${parcel.pickId} · ${parcel.customer?.name || ''}`],
+          ['span', trackingMilestone(parcel.status)],
+          ['small', parcel.trackingToken || 'Tracking token pending'],
+        ]));
         list.append(card);
       }
       section.append(list);

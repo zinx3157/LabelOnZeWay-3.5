@@ -1,11 +1,12 @@
 import { action } from '../components/form.js';
+import { heading, textStack } from '../components/view.js';
 
 export function createCustomersModule({ store }) {
   return {
     render(state) {
       const section = document.createElement('section');
       section.className = 'screen';
-      section.innerHTML = '<div class="screen-heading"><div><h1>Customers</h1><p>Saved customers and address book.</p></div></div>';
+      section.append(heading('Customers', 'Saved customers and address book.'));
 
       const list = document.createElement('div');
       list.className = 'card-list';
@@ -19,8 +20,11 @@ export function createCustomersModule({ store }) {
       for (const customer of state.customers) {
         const card = document.createElement('article');
         card.className = 'card';
-        const text = document.createElement('div');
-        text.innerHTML = `<strong>${customer.name}</strong><span>${customer.phone || 'No phone'}</span><span>${customer.address || 'No address'}</span>`;
+        const text = textStack([
+          ['strong', customer.name],
+          ['span', customer.phone || 'No phone'],
+          ['span', customer.address || 'No address'],
+        ]);
         const use = action('Use for label', 'primary');
         use.addEventListener('click', () => {
           store.update((next) => ({ ...next, route: 'label', labelDraft: { ...next.labelDraft, step: 2, customerId: customer.id, customer: { name: customer.name, phone: customer.phone, address: customer.address } } }));
