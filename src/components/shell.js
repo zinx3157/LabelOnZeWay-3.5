@@ -24,7 +24,11 @@ export function createShell({ state, navigate, content }) {
 
   const brand = document.createElement('div');
   brand.className = 'brand';
-  brand.innerHTML = '<strong>LabelOnZeWay</strong><span>3.5</span>';
+  const brandName = document.createElement('strong');
+  brandName.textContent = 'LabelOnZeWay';
+  const brandVersion = document.createElement('span');
+  brandVersion.textContent = '3.5';
+  brand.append(brandName, brandVersion);
 
   const primary = document.createElement('nav');
   primary.className = 'nav-primary';
@@ -45,7 +49,16 @@ export function createShell({ state, navigate, content }) {
   header.className = 'topbar';
   const status = document.createElement('div');
   status.className = 'status-line';
-  status.innerHTML = `<span class="status-dot ${state.online ? 'is-online' : 'is-offline'}"></span><span>${state.online ? 'Online' : 'Offline'}</span><span class="status-sep">•</span><span>Sync: ${state.sync.status}</span>`;
+  const dot = document.createElement('span');
+  dot.className = `status-dot ${state.online ? 'is-online' : 'is-offline'}`;
+  const connectivity = document.createElement('span');
+  connectivity.textContent = state.online ? 'Online' : 'Offline';
+  const separator = document.createElement('span');
+  separator.className = 'status-sep';
+  separator.textContent = '•';
+  const sync = document.createElement('span');
+  sync.textContent = `Sync: ${state.sync.status}`;
+  status.append(dot, connectivity, separator, sync);
   header.append(status);
 
   const stage = document.createElement('main');
