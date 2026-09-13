@@ -5,6 +5,9 @@ const initialState = Object.freeze({
   online: true,
   sync: { status: 'idle', conflict: false },
   ui: { modal: null, busy: false },
+  customers: [],
+  parcels: [],
+  labelDraft: { step: 1, customerId: null, customer: { name: '', phone: '', address: '' }, parcel: { qty: 1, unitPrice: 0, collect: 0, notes: '' } },
 });
 
 export function createStore(seed = {}) {

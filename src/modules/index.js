@@ -1,26 +1,26 @@
+import { createLabelModule } from './label.js';
+import { createCustomersModule } from './customers.js';
+import { createManifestModule } from './manifest.js';
+
 function screen(title, description) {
   return {
     render() {
       const section = document.createElement('section');
       section.className = 'screen';
-      const h1 = document.createElement('h1');
-      h1.textContent = title;
-      const p = document.createElement('p');
-      p.textContent = description;
-      section.append(h1, p);
+      section.innerHTML = `<div class="screen-heading"><div><h1>${title}</h1><p>${description}</p></div></div>`;
       return section;
     },
   };
 }
 
-export function createModules() {
+export function createModules({ store, services }) {
   return {
     home: screen('Operations', 'LabelOnZeWay 3.5 standalone operations workspace.'),
-    label: screen('New Label', 'Customer → Parcel → Review/Print.'),
-    manifest: screen('Manifest', 'Unified operational manifest.'),
+    label: createLabelModule({ store, services }),
+    manifest: createManifestModule({ store, services }),
     batch: screen('Batch', 'Batch preparation and dispatch.'),
     tracking: screen('Tracking', 'Parcel tracking workspace.'),
-    customers: screen('Customers', 'Customer and address book management.'),
+    customers: createCustomersModule({ store, services }),
     archive: screen('Archive', 'Operational archive.'),
     reconciliation: screen('Reconciliation', 'Financial reconciliation.'),
     reports: screen('Reports', 'Reports and exports.'),
