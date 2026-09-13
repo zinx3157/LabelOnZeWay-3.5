@@ -1,6 +1,7 @@
 import { createLabelModule } from './label.js';
 import { createCustomersModule } from './customers.js';
 import { createManifestModule } from './manifest.js';
+import { createReconciliationModule } from './reconciliation.js';
 
 function screen(title, description) {
   return {
@@ -22,7 +23,7 @@ export function createModules({ store, services }) {
     tracking: screen('Tracking', 'Parcel tracking workspace.'),
     customers: createCustomersModule({ store, services }),
     archive: screen('Archive', 'Operational archive.'),
-    reconciliation: screen('Reconciliation', 'Financial reconciliation.'),
+    reconciliation: createReconciliationModule({ store, services }),
     reports: screen('Reports', 'Reports and exports.'),
     profiles: screen('Profiles', 'Company and workspace profiles.'),
     settings: screen('Settings', 'Application configuration.'),
