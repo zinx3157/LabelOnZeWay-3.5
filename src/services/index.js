@@ -4,6 +4,8 @@ import { createAuthService } from './auth.js';
 import { createWorkspaceService } from './workspace.js';
 import { createSyncService } from './sync.js';
 import { createPrintService } from './print.js';
+import { createOcrService } from './ocr.js';
+import { createMessagingService } from './messaging.js';
 
 export function createServices({ store }) {
   const storage = createStorageService();
@@ -12,6 +14,8 @@ export function createServices({ store }) {
   const workspace = createWorkspaceService({ supabase, store });
   const sync = createSyncService({ supabase, store });
   const print = createPrintService({ supabase, store });
+  const ocr = createOcrService();
+  const messaging = createMessagingService();
 
   const lifecycle = {
     async start() {
@@ -29,15 +33,5 @@ export function createServices({ store }) {
     },
   };
 
-  return {
-    lifecycle,
-    storage,
-    supabase,
-    auth,
-    workspace,
-    sync,
-    print,
-    ocr: { async start() { return { status: 'not-configured' }; } },
-    messaging: { async start() { return { status: 'not-configured' }; } },
-  };
+  return { lifecycle, storage, supabase, auth, workspace, sync, print, ocr, messaging };
 }
