@@ -1,3 +1,4 @@
+import { heading } from '../components/view.js';
 import { reconciliationTotals } from '../domain/manifest.js';
 import { formatAr } from '../domain/money.js';
 
@@ -7,7 +8,7 @@ export function createReconciliationModule() {
       const totals = reconciliationTotals(state.parcels);
       const section = document.createElement('section');
       section.className = 'screen';
-      section.innerHTML = '<div class="screen-heading"><div><h1>Reconciliation</h1><p>One financial model shared with the manifest.</p></div></div>';
+      section.append(heading('Reconciliation', 'One financial model shared with the manifest.'));
       const grid = document.createElement('div');
       grid.className = 'metric-grid';
       const metrics = [
@@ -17,10 +18,14 @@ export function createReconciliationModule() {
         ['Delivered Collect', `${formatAr(totals.deliveredCollect)} Ar`],
         ['Outstanding', `${formatAr(totals.outstandingCollect)} Ar`],
       ];
-      for (const [label,value] of metrics) {
+      for (const [label, value] of metrics) {
         const card = document.createElement('article');
         card.className = 'metric-card';
-        card.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
+        const name = document.createElement('span');
+        name.textContent = label;
+        const result = document.createElement('strong');
+        result.textContent = String(value);
+        card.append(name, result);
         grid.append(card);
       }
       section.append(grid);
