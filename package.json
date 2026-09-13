@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node scripts/check-structure.mjs",
+    "check": "node scripts/check-structure.mjs && node scripts/check-architecture.mjs",
     "test": "npm run check"
   },
   "engines": {
