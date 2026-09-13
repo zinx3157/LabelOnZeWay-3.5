@@ -2,6 +2,7 @@ import { createStore } from './store.js';
 import { createRouter } from './router.js';
 import { createModules } from '../modules/index.js';
 import { createServices } from '../services/index.js';
+import { createShell } from '../components/shell.js';
 
 export async function bootstrap(root) {
   if (!(root instanceof HTMLElement)) throw new Error('App root is required');
@@ -14,7 +15,8 @@ export async function bootstrap(root) {
   const render = () => {
     const state = store.getState();
     const module = modules[state.route] || modules.home;
-    root.replaceChildren(module.render(state));
+    const content = module.render(state);
+    root.replaceChildren(createShell({ state, navigate: router.navigate, content }));
   };
 
   store.subscribe(render);
