@@ -36,13 +36,16 @@ export function createSyncService({ supabase, store }) {
       store.setState({ sync: { status: 'synced', conflict: false } });
       return { status: 'synced', records: 0 };
     }
-    const { error } = await client.from('sync_entities').upsert(rows, { onConflict: 'workspace_id,profile_id,entity_type,entity_id' });
+    const { data, error } = await client.rpc('apply_sync_changes', {
+      p_workspace_id: state.workspace.id,
+      p_changes: rows,
+    });
     if (error) {
       store.setState({ sync: { status: 'error', conflict: false } });
       throw error;
     }
     store.setState({ sync: { status: 'synced', conflict: false } });
-    return { status: 'synced', records: rows.length };
+    return { status: 'synced', records: Number(data ?? rows.length) };
   }
 
   async function pullSnapshot() {
