@@ -1,5 +1,7 @@
 const PHONE_PREFIXES = new Set(['032','033','034','035','037','038','039']);
-const ADDRESS_NOISE = /\b(LOT|PARCELLE|CIT[EÉ]|B\.?P\.?|RUE|AKAIKY|EN\s+FACE|À\s+CÔTÉ|A\s+COTE|ARRÊT|ARRET)\b/gi;
+const ADDRESS_NOISE_SOURCE = String.raw`\b(LOT|PARCELLE|CIT[EÉ]|B\.?P\.?|RUE|AKAIKY|EN\s+FACE|À\s+CÔTÉ|A\s+COTE|ARRÊT|ARRET)\b`;
+const ADDRESS_NOISE = new RegExp(ADDRESS_NOISE_SOURCE, 'gi');
+const ADDRESS_NOISE_TEST = new RegExp(ADDRESS_NOISE_SOURCE, 'i');
 
 export function extractContact(text = '') {
   const normalized = String(text).replace(/\r/g, '\n');
@@ -13,10 +15,13 @@ export function extractContact(text = '') {
   const name = lines.find((line) => {
     if (line.length < 3 || line.length > 80) return false;
     if (/\d{4,}/.test(line)) return false;
-    return !ADDRESS_NOISE.test(line);
+    return !ADDRESS_NOISE_TEST.test(line);
   }) || '';
 
-  const addressLines = lines.filter((line) => line !== name && !phoneMatches.some((match) => line.includes(match))).map((line) => line.replace(ADDRESS_NOISE, '').replace(/\s{2,}/g, ' ').trim()).filter((line) => line.length >= 3);
+  const addressLines = lines
+    .filter((line) => line !== name && !phoneMatches.some((match) => line.includes(match)))
+    .map((line) => line.replace(ADDRESS_NOISE, '').replace(/\s{2,}/g, ' ').trim())
+    .filter((line) => line.length >= 3);
   return { name, phone, address: addressLines.slice(0, 4).join(', '), raw: normalized };
 }
 
