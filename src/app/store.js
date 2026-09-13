@@ -4,9 +4,10 @@ const initialState = Object.freeze({
   workspace: null,
   online: true,
   sync: { status: 'idle', conflict: false },
-  ui: { modal: null, busy: false },
+  ui: { modal: null, busy: false, notice: '' },
   customers: [],
   parcels: [],
+  archive: [],
   labelDraft: { step: 1, customerId: null, customer: { name: '', phone: '', address: '' }, parcel: { qty: 1, unitPrice: 0, collect: 0, notes: '' } },
 });
 

@@ -10,6 +10,7 @@ export function createStorageService() {
         return {
           customers: Array.isArray(parsed.customers) ? parsed.customers : [],
           parcels: Array.isArray(parsed.parcels) ? parsed.parcels : [],
+          archive: Array.isArray(parsed.archive) ? parsed.archive : [],
           workspace: parsed.workspace || null,
         };
       } catch {
@@ -20,6 +21,7 @@ export function createStorageService() {
       const snapshot = {
         customers: state.customers || [],
         parcels: state.parcels || [],
+        archive: state.archive || [],
         workspace: state.workspace || null,
         savedAt: new Date().toISOString(),
       };
