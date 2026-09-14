@@ -8,6 +8,7 @@ export function createRouter(store) {
   }
 
   function routeFromLocation() {
+    if (new URLSearchParams(location.search).get('track')) return 'tracking';
     const route = location.hash.replace(/^#\//, '') || 'home';
     return ROUTES.includes(route) ? route : 'home';
   }
