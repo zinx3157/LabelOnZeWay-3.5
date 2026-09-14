@@ -1,4 +1,4 @@
-const CACHE = 'labelonzeway-3.5-shell-v2';
+const CACHE = 'labelonzeway-3.5-shell-v3';
 const SHELL = [
   './',
   './index.html',
@@ -15,6 +15,7 @@ const SHELL = [
   './src/domain/ids.js',
   './src/domain/manifest.js',
   './src/domain/money.js',
+  './src/domain/pdf.js',
   './src/domain/tracking.js',
   './src/modules/archive.js',
   './src/modules/batch.js',
@@ -33,6 +34,7 @@ const SHELL = [
   './src/services/messaging.js',
   './src/services/ocr.js',
   './src/services/print.js',
+  './src/services/share.js',
   './src/services/storage.js',
   './src/services/supabase.js',
   './src/services/sync.js',
