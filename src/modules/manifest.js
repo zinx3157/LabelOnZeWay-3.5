@@ -85,7 +85,7 @@ export function createManifestModule({ store, services }) {
       const table = document.createElement('table');
       const thead = document.createElement('thead');
       const headRow = document.createElement('tr');
-      ['Select','Pick ID','Customer','Qty','Unit','Collect','Status','Actions'].forEach((name) => {
+      ['Select','Pick ID','Customer','Qty','Unit','Collect','Delivery','Status','Actions'].forEach((name) => {
         const th = document.createElement('th');
         th.textContent = name;
         headRow.append(th);
@@ -113,6 +113,7 @@ export function createManifestModule({ store, services }) {
           cell('Qty', String(parcel.qty ?? '')),
           cell('Unit', formatAr(parcel.unitPrice)),
           cell('Collect', formatAr(parcel.collect)),
+          cell('Delivery', formatAr(parcel.deliveryCharge || 0)),
         );
         const statusCell = document.createElement('td');
         statusCell.dataset.label = 'Status';
@@ -139,6 +140,7 @@ export function createManifestModule({ store, services }) {
                 qty: parcel.qty ?? 1,
                 unitPrice: parcel.unitPrice ?? 0,
                 collect: parcel.collect ?? 0,
+                deliveryCharge: parcel.deliveryCharge ?? 0,
                 notes: parcel.notes || '',
               },
             },
