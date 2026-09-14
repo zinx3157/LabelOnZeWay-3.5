@@ -81,11 +81,16 @@ test('Approved 72mm label ESC/POS contains hierarchy, QR and cut command', () =>
   }, { trackingUrl: 'https://example.com/?track=trk_test#/tracking' });
   const text = new TextDecoder().decode(bytes);
   assert.match(text, /LABELONZEWAY/);
-  assert.match(text, /PICK 140926-1/);
+  assert.match(text, /PICK\s+QTY/);
+  assert.match(text, /140926-1\s+1/);
   assert.match(text, /Nadia Rapanarivo/);
+  assert.match(text, /TEL\s+034 14 183 34/);
+  assert.match(text, /Taxi Brousse Vatsi/);
   assert.match(text, /A COLLECTER/);
   assert.match(text, /15 000 Ar/);
+  assert.match(text, /Livraison 1 500 Ar/);
   assert.match(text, /LIVRAISON PREVUE/);
+  assert.match(text, /SCAN POUR SUIVRE/);
   assert.ok(bytes.some((value, index) => value === 0x1d && bytes[index + 1] === 0x28 && bytes[index + 2] === 0x6b), 'QR command must be present');
   assert.deepEqual(Array.from(bytes.slice(-4)), [0x1d,0x56,0x42,0x00]);
 });
