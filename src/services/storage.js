@@ -13,6 +13,7 @@ export function createStorageService() {
           archive: Array.isArray(parsed.archive) ? parsed.archive : [],
           claims: Array.isArray(parsed.claims) ? parsed.claims : [],
           workspace: parsed.workspace || null,
+          profileSettings: parsed.profileSettings && typeof parsed.profileSettings === 'object' ? parsed.profileSettings : { name: '', manifestEmail: '' },
         };
       } catch {
         return {};
@@ -25,6 +26,7 @@ export function createStorageService() {
         archive: state.archive || [],
         claims: state.claims || [],
         workspace: state.workspace || null,
+        profileSettings: state.profileSettings || { name: '', manifestEmail: '' },
         savedAt: new Date().toISOString(),
       };
       localStorage.setItem(KEY, JSON.stringify(snapshot));
