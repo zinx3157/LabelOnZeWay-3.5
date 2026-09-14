@@ -6,7 +6,15 @@
   "scripts": {
     "check": "node scripts/check-structure.mjs && node scripts/check-architecture.mjs",
     "test:domain": "node --test tests/*.test.mjs",
-    "test": "npm run check && npm run test:domain"
+    "test": "npm run check && npm run test:domain",
+    "prepare:android": "rm -rf www && mkdir -p www && cp index.html sw.js www/ && cp -R src public www/"
+  },
+  "dependencies": {
+    "@capacitor/android": "6.2.0",
+    "@capacitor/core": "6.2.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "6.2.0"
   },
   "engines": {
     "node": ">=20"
