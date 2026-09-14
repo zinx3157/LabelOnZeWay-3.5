@@ -8,11 +8,15 @@ const initialState = Object.freeze({
   customers: [],
   parcels: [],
   archive: [],
-  labelDraft: { step: 1, customerId: null, customer: { name: '', phone: '', address: '' }, parcel: { qty: 1, unitPrice: 0, collect: 0, notes: '' } },
+  claims: [],
+  labelDraft: { step: 1, customerId: null, customer: { name: '', phone: '', address: '' }, parcel: { qty: 1, unitPrice: 0, collect: 0, deliveryCharge: 0, notes: '' } },
 });
 
 export function createStore(seed = {}) {
   let state = structuredClone({ ...initialState, ...seed });
+  if (!Array.isArray(state.claims)) state.claims = [];
+  if (!state.labelDraft?.parcel) state.labelDraft = structuredClone(initialState.labelDraft);
+  if (state.labelDraft.parcel.deliveryCharge == null) state.labelDraft.parcel.deliveryCharge = 0;
   const listeners = new Set();
 
   return {
