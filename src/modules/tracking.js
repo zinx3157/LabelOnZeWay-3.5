@@ -81,7 +81,7 @@ export function createTrackingModule({ services, store }) {
         (async () => {
           try {
             const client = await services.supabase.connect();
-            const { data, error } = await client.from('public_tracking')
+            const { data, error } = await client.from('public_tracking_v35')
               .select('pick_id,status,archived,updated_at')
               .eq('tracking_token', publicToken)
               .maybeSingle();
