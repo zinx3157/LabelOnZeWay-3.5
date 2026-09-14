@@ -54,7 +54,7 @@ export function createSyncService({ supabase, store }) {
         updated_at: item.statusUpdatedAt || item.archivedAt || item.modifiedAt || modifiedAt,
       }));
       if (trackingRows.length) {
-        const { error: trackingError } = await client.from('public_tracking').upsert(trackingRows, { onConflict: 'tracking_token' });
+        const { error: trackingError } = await client.from('public_tracking_v35').upsert(trackingRows, { onConflict: 'tracking_token' });
         if (trackingError) {
           store.setState({ sync: { status: 'error', conflict: false } });
           throw trackingError;
