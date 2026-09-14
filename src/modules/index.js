@@ -5,6 +5,7 @@ import { createReconciliationModule } from './reconciliation.js';
 import { createBatchModule } from './batch.js';
 import { createTrackingModule } from './tracking.js';
 import { createArchiveModule } from './archive.js';
+import { createClaimsModule } from './claims.js';
 import { createSettingsModule } from './settings.js';
 import { createHomeModule } from './home.js';
 import { createReportsModule } from './reports.js';
@@ -19,6 +20,7 @@ export function createModules({ store, services }) {
     tracking: createTrackingModule({ store, services }),
     customers: createCustomersModule({ store, services }),
     archive: createArchiveModule({ store, services }),
+    claims: createClaimsModule({ store, services }),
     reconciliation: createReconciliationModule({ store, services }),
     reports: createReportsModule({ store, services }),
     profiles: createProfilesModule({ store, services }),
