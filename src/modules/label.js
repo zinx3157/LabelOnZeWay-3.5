@@ -42,6 +42,37 @@ function labelPreview(draft) {
   return preview;
 }
 
+function ocrReview(contact, targets) {
+  const review = document.createElement('div');
+  review.className = 'workspace-card ocr-review';
+  const title = document.createElement('h2');
+  title.textContent = 'Contact found in photo';
+  const hint = document.createElement('p');
+  hint.textContent = 'Review the extracted details before applying them.';
+  const scanName = field('Name', 'ocrName', contact.name || '');
+  const scanPhone = field('Phone', 'ocrPhone', contact.phone || '', { type: 'tel', inputmode: 'tel' });
+  const scanAddress = field('Address', 'ocrAddress', contact.address || '', { multiline: true });
+  const actions = document.createElement('div');
+  actions.className = 'button-row';
+  const use = action('Use scanned contact', 'primary');
+  const edit = action('Edit scanned contact');
+  const skip = action('Skip scan');
+  edit.addEventListener('click', () => scanName.input.focus());
+  use.addEventListener('click', () => {
+    if (scanName.input.value.trim()) targets.name.value = scanName.input.value.trim();
+    if (scanPhone.input.value.trim()) targets.phone.value = scanPhone.input.value.trim();
+    if (scanAddress.input.value.trim()) targets.address.value = scanAddress.input.value.trim();
+    review.replaceChildren();
+    const applied = document.createElement('small');
+    applied.textContent = 'Scanned contact applied.';
+    review.append(applied);
+  });
+  skip.addEventListener('click', () => review.remove());
+  actions.append(use, edit, skip);
+  review.append(title, hint, scanName.wrap, scanPhone.wrap, scanAddress.wrap, actions);
+  return review;
+}
+
 export function createLabelModule({ store, services }) {
   return {
     render(state) {
@@ -67,18 +98,19 @@ export function createLabelModule({ store, services }) {
         const scan = action('Scan photo');
         const scanStatus = document.createElement('small');
         scanStatus.textContent = 'OCR loads only when you scan.';
+        const reviewHost = document.createElement('div');
+        reviewHost.className = 'ocr-review-host';
         scan.addEventListener('click', async () => {
           const image = photo.files?.[0];
           if (!image) { scanStatus.textContent = 'Choose or take a photo first.'; return; }
           scan.disabled = true;
           scan.textContent = 'Scanning…';
           scanStatus.textContent = 'Reading contact details…';
+          reviewHost.replaceChildren();
           try {
             const contact = await services.ocr.recognize(image);
-            if (contact.name && !name.input.value.trim()) name.input.value = contact.name;
-            if (contact.phone) phone.input.value = contact.phone;
-            if (contact.address) address.input.value = contact.address;
-            scanStatus.textContent = 'Scan complete. Check the extracted details before continuing.';
+            reviewHost.append(ocrReview(contact, { name: name.input, phone: phone.input, address: address.input }));
+            scanStatus.textContent = 'Scan complete. Use, edit or skip the extracted contact.';
           } catch (error) {
             scanStatus.textContent = `Scan failed: ${error.message}`;
           } finally {
@@ -94,7 +126,7 @@ export function createLabelModule({ store, services }) {
           if (!customer.name) { name.input.focus(); return; }
           store.update((current) => ({ ...current, labelDraft: { ...current.labelDraft, step: 2, customer } }));
         });
-        panel.append(scanCard, name.wrap, phone.wrap, address.wrap, next);
+        panel.append(scanCard, reviewHost, name.wrap, phone.wrap, address.wrap, next);
       }
 
       if (draft.step === 2) {
@@ -155,7 +187,7 @@ export function createLabelModule({ store, services }) {
         print.addEventListener('click', async () => {
           const parcel = materialize(store.getState());
           try {
-            const result = await services.print.print({ data: bytesToBase64(labelEscPos(parcel)), labels: 1 });
+            const result = await services.print.printWithRetry({ data: bytesToBase64(labelEscPos(parcel)), labels: 1 }, { attempts: 2 });
             print.textContent = result.adapter === 'cloud' ? 'Queued to cloud' : 'Printed';
           } catch (error) {
             print.textContent = 'Print failed';
