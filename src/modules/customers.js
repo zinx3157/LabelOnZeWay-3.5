@@ -1,19 +1,13 @@
 import { action, field } from '../components/form.js';
 import { heading } from '../components/view.js';
 
-function shipmentHistory(state, customerId) {
-  const all = [...state.parcels, ...state.archive].filter((item) => item.customerId === customerId || item.customer?.id === customerId);
-  if (!all.length) return null;
-  return [...all].sort((a, b) => String(b.createdAt || b.archivedAt || '').localeCompare(String(a.createdAt || a.archivedAt || '')))[0];
-}
-
 function clean(value) { return String(value ?? '').replace(/\s+/g, ' ').trim(); }
+function textKey(value) { return clean(value).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
 function phoneKey(value) {
   const digits = clean(value).replace(/\D/g, '');
   if (!digits) return '';
   return digits.startsWith('261') && digits.length === 12 ? `0${digits.slice(3)}` : digits;
 }
-function textKey(value) { return clean(value).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
 function customerKey(customer) {
   const phone = phoneKey(customer.phone);
   return phone ? `p:${phone}` : `n:${textKey(customer.name)}|a:${textKey(customer.area)}|d:${textKey(customer.address)}`;
@@ -24,26 +18,33 @@ function parseAddressBook(payload) {
   return rows.map((row) => ({ name: clean(row?.name), phone: clean(row?.phone), area: clean(row?.area), address: clean(row?.address) }))
     .filter((row) => row.name && (row.phone || row.area || row.address));
 }
+function shipmentHistory(state, customerId) {
+  const all = [...state.parcels, ...state.archive].filter((item) => item.customerId === customerId || item.customer?.id === customerId);
+  if (!all.length) return null;
+  return [...all].sort((a, b) => String(b.createdAt || b.archivedAt || '').localeCompare(String(a.createdAt || a.archivedAt || '')))[0];
+}
 function initials(name) {
   const parts = clean(name).split(' ').filter(Boolean);
-  return (parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : parts[0]?.slice(0,2) || '?').toUpperCase();
+  return (parts.length > 1 ? parts[0][0] + parts.at(-1)[0] : parts[0]?.slice(0, 2) || '?').toUpperCase();
 }
-function makeText(tag, className, value) {
-  const el = document.createElement(tag);
-  el.className = className;
-  el.textContent = value;
-  return el;
+function text(tag, className, value) {
+  const node = document.createElement(tag);
+  node.className = className;
+  node.textContent = value;
+  return node;
 }
 function downloadJson(name, payload) {
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 500);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = name;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  requestAnimationFrame(() => URL.revokeObjectURL(url));
 }
-function formatPhoneHref(phone) {
+function phoneHref(phone) {
   const digits = clean(phone).replace(/\D/g, '');
   if (!digits) return '';
   if (digits.startsWith('0') && digits.length === 10) return `+261${digits.slice(1)}`;
@@ -73,7 +74,6 @@ export function createCustomersModule({ store }) {
       search.placeholder = 'Search customer, phone, area or address…';
       search.value = query;
       search.setAttribute('aria-label', 'Search customers');
-
       const newButton = action('New customer', 'primary');
       const importButton = action('Import');
       const exportButton = action('Export');
@@ -90,7 +90,7 @@ export function createCustomersModule({ store }) {
       titleRow.append(heading('Customers', `Manage your address book · ${state.customers.length} customers`));
       const sortWrap = document.createElement('div');
       sortWrap.className = 'customers-sort-wrap';
-      sortWrap.append(makeText('span', 'customers-sort-label', 'Sort by'));
+      sortWrap.append(text('span', 'customers-sort-label', 'Sort by'));
       const sortSelect = document.createElement('select');
       sortSelect.className = 'select customers-sort';
       for (const [value, label] of [['name','Name A → Z'],['area','Area A → Z'],['recent','Recently added']]) {
@@ -104,63 +104,62 @@ export function createCustomersModule({ store }) {
       titleRow.append(sortWrap);
       section.append(titleRow);
 
-      const areas = new Map();
+      const areaCounts = new Map();
       for (const customer of state.customers) {
         const area = clean(customer.area);
-        if (!area) continue;
-        areas.set(area, (areas.get(area) || 0) + 1);
+        if (area) areaCounts.set(area, (areaCounts.get(area) || 0) + 1);
       }
-      const topAreas = [...areas.entries()].sort((a,b) => b[1] - a[1]).slice(0,4);
+      const topAreas = [...areaCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4);
+      const otherCount = state.customers.filter((customer) => clean(customer.area) && !topAreas.some(([area]) => area === clean(customer.area))).length;
       const chips = document.createElement('div');
       chips.className = 'customer-filter-chips';
-      const addChip = (value, label, count) => {
+      const chipDefs = [['all', 'All', state.customers.length], ...topAreas.map(([area, count]) => [area, area, count])];
+      if (otherCount) chipDefs.push(['other', 'Other', otherCount]);
+      for (const [value, label, count] of chipDefs) {
         const chip = document.createElement('button');
         chip.type = 'button';
         chip.className = `customer-filter-chip${areaFilter === value ? ' is-active' : ''}`;
         chip.textContent = `${label} ${count}`;
-        chip.addEventListener('click', () => { areaFilter = value; page = 1; refreshAll(); });
+        chip.dataset.filter = value;
+        chip.addEventListener('click', () => { areaFilter = value; page = 1; renderList(); refreshChips(); });
         chips.append(chip);
-      };
-      addChip('all', 'All', state.customers.length);
-      for (const [area,count] of topAreas) addChip(area, area, count);
-      const otherCount = state.customers.filter((c) => clean(c.area) && !topAreas.some(([area]) => area === clean(c.area))).length;
-      if (otherCount) addChip('other', 'Other', otherCount);
+      }
       section.append(chips);
 
-      const importStatus = document.createElement('p');
-      importStatus.className = 'helper-text';
-      importStatus.textContent = importMessage;
+      const importStatus = text('p', 'helper-text', importMessage);
       section.append(importStatus);
-
       const list = document.createElement('div');
       list.className = 'customer-directory';
       section.append(list);
 
       const footer = document.createElement('div');
       footer.className = 'customers-footer';
-      const selectionLabel = makeText('span', 'customers-selected-label', '0 selected');
+      const selectedLabel = text('span', 'customers-selected-label', '0 selected');
       const deleteSelected = action('Delete selected');
       deleteSelected.classList.add('danger-action');
       deleteSelected.disabled = true;
       const pager = document.createElement('div');
       pager.className = 'customers-pager';
-      const prev = action('‹');
-      const pageLabel = makeText('span', 'customers-page-label', '1 / 1');
+      const previous = action('‹');
+      const pageLabel = text('span', 'customers-page-label', '1 / 1');
       const next = action('›');
-      pager.append(prev, pageLabel, next);
-      footer.append(selectionLabel, deleteSelected, pager);
+      pager.append(previous, pageLabel, next);
+      footer.append(selectedLabel, deleteSelected, pager);
       section.append(footer);
 
-      function filteredRows() {
+      function refreshChips() {
+        for (const chip of chips.querySelectorAll('.customer-filter-chip')) chip.classList.toggle('is-active', chip.dataset.filter === areaFilter);
+      }
+
+      function rows() {
         const needle = textKey(query);
-        let rows = state.customers.filter((c) => {
-          const matchesQuery = !needle || [c.name,c.phone,c.area,c.address].some((v) => textKey(v).includes(needle));
-          if (!matchesQuery) return false;
+        return state.customers.filter((customer) => {
+          const queryMatch = !needle || [customer.name, customer.phone, customer.area, customer.address].some((value) => textKey(value).includes(needle));
+          if (!queryMatch) return false;
           if (areaFilter === 'all') return true;
-          if (areaFilter === 'other') return clean(c.area) && !topAreas.some(([area]) => area === clean(c.area));
-          return clean(c.area) === areaFilter;
-        });
-        return [...rows].sort((a,b) => {
+          if (areaFilter === 'other') return clean(customer.area) && !topAreas.some(([area]) => area === clean(customer.area));
+          return clean(customer.area) === areaFilter;
+        }).sort((a, b) => {
           if (sort === 'area') return clean(a.area).localeCompare(clean(b.area));
           if (sort === 'recent') return String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
           return clean(a.name).localeCompare(clean(b.name));
@@ -168,87 +167,11 @@ export function createCustomersModule({ store }) {
       }
 
       function updateSelection() {
-        selectionLabel.textContent = `${selected.size} selected`;
+        selectedLabel.textContent = `${selected.size} selected`;
         deleteSelected.disabled = selected.size === 0;
       }
 
-      function renderList() {
-        list.replaceChildren();
-        const rows = filteredRows();
-        const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
-        if (page > totalPages) page = totalPages;
-        const visible = rows.slice((page - 1) * pageSize, page * pageSize);
-        pageLabel.textContent = `${page} / ${totalPages}`;
-        prev.disabled = page <= 1;
-        next.disabled = page >= totalPages;
-
-        if (!visible.length) {
-          const empty = document.createElement('div');
-          empty.className = 'empty-state';
-          empty.textContent = state.customers.length ? 'No customers match your filters.' : 'No saved customers yet.';
-          list.append(empty);
-          return;
-        }
-
-        for (const customer of visible) {
-          const row = document.createElement('article');
-          row.className = 'customer-row';
-          row.dataset.customerId = customer.id;
-
-          const chooser = document.createElement('input');
-          chooser.type = 'checkbox';
-          chooser.className = 'customer-check';
-          chooser.checked = selected.has(customer.id);
-          chooser.setAttribute('aria-label', `Select ${customer.name}`);
-          chooser.addEventListener('change', () => {
-            chooser.checked ? selected.add(customer.id) : selected.delete(customer.id);
-            updateSelection();
-          });
-
-          const avatar = makeText('div', 'customer-avatar', initials(customer.name));
-          const identity = document.createElement('div');
-          identity.className = 'customer-identity';
-          identity.append(makeText('strong', 'customer-name', customer.name), makeText('span', 'customer-phone', customer.phone || 'No phone'));
-
-          const addressBlock = document.createElement('div');
-          addressBlock.className = 'customer-location';
-          if (customer.area) addressBlock.append(makeText('strong', 'customer-area', customer.area));
-          addressBlock.append(makeText('span', 'customer-address', customer.address || 'No address'));
-          const history = shipmentHistory(state, customer.id);
-          if (history) addressBlock.append(makeText('small', 'customer-history', `Previous: ${history.pickId || 'unknown'} · ${history.status || 'unknown'}`));
-
-          const buttons = document.createElement('div');
-          buttons.className = 'customer-actions';
-          const telHref = formatPhoneHref(customer.phone);
-          if (telHref) {
-            const wa = document.createElement('a');
-            wa.className = 'customer-icon-action';
-            wa.href = `https://wa.me/${telHref.replace('+','')}`;
-            wa.target = '_blank';
-            wa.rel = 'noreferrer';
-            wa.setAttribute('aria-label', `WhatsApp ${customer.name}`);
-            wa.textContent = 'WA';
-            const call = document.createElement('a');
-            call.className = 'customer-icon-action';
-            call.href = `tel:${telHref}`;
-            call.setAttribute('aria-label', `Call ${customer.name}`);
-            call.textContent = '☎';
-            buttons.append(wa, call);
-          }
-          const use = action('Use for label', 'primary');
-          const edit = action('Edit');
-          use.addEventListener('click', () => {
-            store.update((nextState) => ({ ...nextState, route: 'label', labelDraft: { ...nextState.labelDraft, step: 2, customerId: customer.id, customer: { name: customer.name, phone: customer.phone, address: customer.address } } }));
-            window.location.hash = '#/label';
-          });
-          edit.addEventListener('click', () => showEditForm(row, customer));
-          buttons.append(use, edit);
-          row.append(chooser, avatar, identity, addressBlock, buttons);
-          list.append(row);
-        }
-      }
-
-      function showEditForm(row, customer) {
+      function showForm(host, customer = null) {
         const form = document.createElement('div');
         form.className = 'workspace-card customer-edit-card';
         const name = field('Name', 'customerEditName', customer?.name || '');
@@ -261,7 +184,7 @@ export function createCustomersModule({ store }) {
         actions.className = 'button-row';
         save.addEventListener('click', () => {
           const nextName = name.input.value.trim();
-          if (!nextName) return;
+          if (!nextName) { name.input.focus(); return; }
           const now = new Date().toISOString();
           store.update((current) => {
             if (customer) {
@@ -273,34 +196,85 @@ export function createCustomersModule({ store }) {
         cancel.addEventListener('click', () => renderList());
         actions.append(save, cancel);
         form.append(name.wrap, phone.wrap, area.wrap, address.wrap, actions);
-        row.replaceChildren(form);
+        host.replaceChildren(form);
       }
 
-      function refreshAll() {
-        renderList();
-        for (const chip of chips.querySelectorAll('.customer-filter-chip')) chip.classList.remove('is-active');
-        const chipValues = ['all', ...topAreas.map(([area]) => area), ...(otherCount ? ['other'] : [])];
-        const activeIndex = chipValues.indexOf(areaFilter);
-        if (activeIndex >= 0) chips.children[activeIndex]?.classList.add('is-active');
+      function renderList() {
+        list.replaceChildren();
+        const filtered = rows();
+        const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+        page = Math.min(page, totalPages);
+        const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
+        pageLabel.textContent = `${page} / ${totalPages}`;
+        previous.disabled = page <= 1;
+        next.disabled = page >= totalPages;
+        if (!visible.length) {
+          list.append(text('div', 'empty-state', state.customers.length ? 'No customers match your filters.' : 'No saved customers yet.'));
+          return;
+        }
+        for (const customer of visible) {
+          const row = document.createElement('article');
+          row.className = 'customer-row';
+          row.dataset.customerId = customer.id;
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.className = 'customer-check';
+          checkbox.checked = selected.has(customer.id);
+          checkbox.setAttribute('aria-label', `Select ${customer.name}`);
+          checkbox.addEventListener('change', () => { checkbox.checked ? selected.add(customer.id) : selected.delete(customer.id); updateSelection(); });
+          const avatar = text('div', 'customer-avatar', initials(customer.name));
+          const identity = document.createElement('div');
+          identity.className = 'customer-identity';
+          identity.append(text('strong', 'customer-name', customer.name), text('span', 'customer-phone', customer.phone || 'No phone'));
+          const location = document.createElement('div');
+          location.className = 'customer-location';
+          if (customer.area) location.append(text('strong', 'customer-area', customer.area));
+          location.append(text('span', 'customer-address', customer.address || 'No address'));
+          const history = shipmentHistory(state, customer.id);
+          if (history) location.append(text('small', 'customer-history', `Previous shipment: ${history.pickId || 'unknown'} · ${history.status || 'unknown'}`));
+          const actions = document.createElement('div');
+          actions.className = 'customer-actions';
+          const tel = phoneHref(customer.phone);
+          if (tel) {
+            const wa = document.createElement('a');
+            wa.className = 'customer-icon-action';
+            wa.href = `https://wa.me/${tel.replace('+', '')}`;
+            wa.target = '_blank';
+            wa.rel = 'noreferrer';
+            wa.textContent = 'WA';
+            wa.setAttribute('aria-label', `WhatsApp ${customer.name}`);
+            const call = document.createElement('a');
+            call.className = 'customer-icon-action';
+            call.href = `tel:${tel}`;
+            call.textContent = '☎';
+            call.setAttribute('aria-label', `Call ${customer.name}`);
+            actions.append(wa, call);
+          }
+          const use = action('Use for label', 'primary');
+          const edit = action('Edit');
+          use.addEventListener('click', () => {
+            store.update((current) => ({ ...current, route: 'label', labelDraft: { ...current.labelDraft, step: 2, customerId: customer.id, customer: { name: customer.name, phone: customer.phone, address: customer.address } } }));
+            window.location.hash = '#/label';
+          });
+          edit.addEventListener('click', () => showForm(row, customer));
+          actions.append(use, edit);
+          row.append(checkbox, avatar, identity, location, actions);
+          list.append(row);
+        }
       }
 
       search.addEventListener('input', () => { query = search.value; page = 1; renderList(); });
       sortSelect.addEventListener('change', () => { sort = sortSelect.value; page = 1; renderList(); });
-      prev.addEventListener('click', () => { page -= 1; renderList(); });
+      previous.addEventListener('click', () => { page = Math.max(1, page - 1); renderList(); });
       next.addEventListener('click', () => { page += 1; renderList(); });
-      deleteSelected.addEventListener('click', () => {
-        store.update((current) => ({ ...current, customers: current.customers.filter((item) => !selected.has(item.id)) }));
-      });
+      deleteSelected.addEventListener('click', () => store.update((current) => ({ ...current, customers: current.customers.filter((item) => !selected.has(item.id)) })));
       newButton.addEventListener('click', () => {
-        list.replaceChildren();
         const holder = document.createElement('article');
         holder.className = 'customer-row customer-new-row';
-        list.append(holder);
-        showEditForm(holder, null);
+        list.replaceChildren(holder);
+        showForm(holder);
       });
-      exportButton.addEventListener('click', () => {
-        downloadJson('LabelOnZeWay-3.5-AddressBook.json', { version: '3.5', importType: 'customers-only', customers: state.customers.map(({ name, phone, area, address }) => ({ name, phone, area, address })) });
-      });
+      exportButton.addEventListener('click', () => downloadJson('LabelOnZeWay-3.5-AddressBook.json', { version: '3.5', importType: 'customers-only', customers: state.customers.map(({ name, phone, area, address }) => ({ name, phone, area, address })) }));
       importButton.addEventListener('click', () => importInput.click());
       importInput.addEventListener('change', async () => {
         const file = importInput.files?.[0];
@@ -308,28 +282,28 @@ export function createCustomersModule({ store }) {
         importInput.value = '';
         try {
           const incoming = parseAddressBook(JSON.parse(await file.text()));
-          const existingKeys = new Set(state.customers.map(customerKey));
-          const incomingKeys = new Set();
-          const now = new Date().toISOString();
+          const existing = new Set(state.customers.map(customerKey));
+          const seen = new Set();
           const imported = [];
           let skipped = 0;
+          const now = new Date().toISOString();
           for (const row of incoming) {
             const key = customerKey(row);
-            if (existingKeys.has(key) || incomingKeys.has(key)) { skipped += 1; continue; }
-            incomingKeys.add(key);
-            imported.push({ id: crypto.randomUUID(), name: row.name, phone: row.phone, area: row.area, address: row.address, createdAt: now, modifiedAt: now });
+            if (existing.has(key) || seen.has(key)) { skipped += 1; continue; }
+            seen.add(key);
+            imported.push({ id: crypto.randomUUID(), ...row, createdAt: now, modifiedAt: now });
           }
-          importMessage = `${imported.length} customer${imported.length === 1 ? '' : 's'} imported${skipped ? ` · ${skipped} duplicate${skipped === 1 ? '' : 's'} skipped` : ''}.`;
+          importMessage = `${imported.length} customer${imported.length === 1 ? '' : 's'} imported${skipped ? ` · ${skipped} duplicate${skipped === 1 ? '' : 's'} skipped` : ''}. IDs and notes ignored.`;
+          importStatus.textContent = importMessage;
           if (imported.length) store.update((current) => ({ ...current, customers: [...current.customers, ...imported] }));
-          else importStatus.textContent = importMessage;
         } catch (error) {
           importMessage = `Import rejected: ${error.message}`;
           importStatus.textContent = importMessage;
         }
       });
 
+      refreshChips();
       renderList();
-      updateSelection();
       return section;
     },
   };
