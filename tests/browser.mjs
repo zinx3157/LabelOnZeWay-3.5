@@ -143,9 +143,9 @@ try {
     await page.goto(`${BASE}#/reports`, { waitUntil: 'domcontentloaded' });
     const restoreInput = page.locator('input[type="file"]');
     await restoreInput.setInputFiles({ name: 'bad-backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ version: '2.0', customers: [], parcels: [], archive: [] })) });
-    assert.match(await page.locator('body').innerText(), /Restore rejected:/);
+    await page.getByText(/Restore rejected:/).waitFor();
     await restoreInput.setInputFiles({ name: 'uat-backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(restoreSnapshot)) });
-    assert.match(await page.locator('body').innerText(), /Backup restored:/);
+    await page.getByText(/Backup restored:/).waitFor();
     const restored = await page.evaluate(() => JSON.parse(localStorage.getItem('labelonzeway.3.5.state.v1')));
     assert.equal(restored.parcels.length, restoreSnapshot.parcels.length, `${viewport.name} restore parcel parity`);
     assert.equal(restored.parcels[0].collect, 40000, `${viewport.name} restore financial parity`);
