@@ -85,7 +85,7 @@ try {
       await checkbox.check();
       await page.locator('select.select').selectOption(lifecycleStatus);
       await page.getByRole('button', { name: 'Update selected' }).click();
-      assert.match(await page.locator('tbody').innerText(), new RegExp(lifecycleStatus.replace('-', '[ -]?'), 'i'));
+      assert.match((await page.locator('tbody').innerText()).toLowerCase(), new RegExp(lifecycleStatus.replace('-', '[ -]?')));
     }
 
     await page.reload({ waitUntil: 'domcontentloaded' });
@@ -103,7 +103,7 @@ try {
     await page.locator('input[name="trackingSearch"]').fill('NOT-A-REAL-ID');
     assert.match(await page.locator('body').innerText(), /Tracking ID not found/);
     await page.locator('input[name="trackingSearch"]').fill(originalIdentity.trackingToken);
-    assert.match(await page.locator('body').innerText(), new RegExp(originalIdentity.pickId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.match(await page.locator('body').innerText(), new RegExp(originalIdentity.pickId));
 
     const publicBase = new URL(BASE);
     publicBase.searchParams.set('track', originalIdentity.trackingToken);
@@ -141,7 +141,10 @@ try {
       workspace: snapshot.workspace,
     };
     await page.goto(`${BASE}#/reports`, { waitUntil: 'domcontentloaded' });
-    await page.locator('input[type="file"]').setInputFiles({ name: 'uat-backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(restoreSnapshot)) });
+    const restoreInput = page.locator('input[type="file"]');
+    await restoreInput.setInputFiles({ name: 'bad-backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ version: '2.0', customers: [], parcels: [], archive: [] })) });
+    assert.match(await page.locator('body').innerText(), /Restore rejected:/);
+    await restoreInput.setInputFiles({ name: 'uat-backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(restoreSnapshot)) });
     assert.match(await page.locator('body').innerText(), /Backup restored:/);
     const restored = await page.evaluate(() => JSON.parse(localStorage.getItem('labelonzeway.3.5.state.v1')));
     assert.equal(restored.parcels.length, restoreSnapshot.parcels.length, `${viewport.name} restore parcel parity`);
@@ -158,6 +161,13 @@ try {
     await page.locator('input[name="profileId"]').fill('ops_uat');
     await page.getByRole('button', { name: 'Use profile' }).click();
     assert.match(await page.locator('.topbar').innerText(), /UAT Company \/ ops_uat/);
+    await page.goto(`${BASE}#/manifest`, { waitUntil: 'domcontentloaded' });
+    assert.match(await page.locator('body').innerText(), /No parcels in the current manifest/);
+    await page.goto(`${BASE}#/profiles`, { waitUntil: 'domcontentloaded' });
+    await page.locator('input[name="profileId"]').fill('ps_default');
+    await page.getByRole('button', { name: 'Use profile' }).click();
+    await page.goto(`${BASE}#/manifest`, { waitUntil: 'domcontentloaded' });
+    assert.match(await page.locator('body').innerText(), /Restored Customer/);
 
     for (let cycle = 0; cycle < 20; cycle += 1) {
       await page.goto(`${BASE}#/manifest`, { waitUntil: 'domcontentloaded' });
