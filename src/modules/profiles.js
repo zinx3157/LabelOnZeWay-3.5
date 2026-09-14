@@ -1,97 +1,23 @@
 import { heading } from '../components/view.js';
 import { field, action } from '../components/form.js';
 
-function profileKey(workspaceId, profileId) {
-  return `lz35.profileData:${workspaceId}:${profileId}`;
-}
-
-function emptyProfile() {
-  return { customers: [], parcels: [], archive: [], claims: [], settings: { name: '', manifestEmail: '' } };
-}
-
-function readProfile(workspaceId, profileId) {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(profileKey(workspaceId, profileId)) || 'null');
-    if (!parsed) return emptyProfile();
-    return {
-      customers: Array.isArray(parsed.customers) ? parsed.customers : [],
-      parcels: Array.isArray(parsed.parcels) ? parsed.parcels : [],
-      archive: Array.isArray(parsed.archive) ? parsed.archive : [],
-      claims: Array.isArray(parsed.claims) ? parsed.claims : [],
-      settings: parsed.settings && typeof parsed.settings === 'object' ? parsed.settings : { name: '', manifestEmail: '' },
-    };
-  } catch {
-    return emptyProfile();
-  }
-}
-
-function writeProfile(workspaceId, profileId, state) {
-  localStorage.setItem(profileKey(workspaceId, profileId), JSON.stringify({
-    customers: state.customers || [],
-    parcels: state.parcels || [],
-    archive: state.archive || [],
-    claims: state.claims || [],
-    settings: state.profileSettings || { name: '', manifestEmail: '' },
-    savedAt: new Date().toISOString(),
-  }));
-}
+function profileKey(workspaceId, profileId) { return `lz35.profileData:${workspaceId}:${profileId}`; }
+function emptyProfile() { return { customers: [], parcels: [], archive: [], claims: [], settings: { name: '', manifestEmail: '' } }; }
+function readProfile(workspaceId, profileId) { try { const parsed = JSON.parse(localStorage.getItem(profileKey(workspaceId, profileId)) || 'null'); if (!parsed) return emptyProfile(); return { customers: Array.isArray(parsed.customers) ? parsed.customers : [], parcels: Array.isArray(parsed.parcels) ? parsed.parcels : [], archive: Array.isArray(parsed.archive) ? parsed.archive : [], claims: Array.isArray(parsed.claims) ? parsed.claims : [], settings: parsed.settings && typeof parsed.settings === 'object' ? parsed.settings : { name: '', manifestEmail: '' } }; } catch { return emptyProfile(); } }
+function writeProfile(workspaceId, profileId, state) { localStorage.setItem(profileKey(workspaceId, profileId), JSON.stringify({ customers: state.customers || [], parcels: state.parcels || [], archive: state.archive || [], claims: state.claims || [], settings: state.profileSettings || { name: '', manifestEmail: '' }, savedAt: new Date().toISOString() })); }
 
 export function createProfilesModule({ store }) {
-  return {
-    render(state) {
-      const section = document.createElement('section');
-      section.className = 'screen';
-      section.append(heading('Profiles', 'Company identity, manifest delivery settings and isolated operational data.'));
-      const card = document.createElement('div');
-      card.className = 'workspace-card';
-      const workspace = document.createElement('p');
-      workspace.textContent = state.workspace ? `Workspace: ${state.workspace.name}` : 'No cloud workspace selected.';
-      const profile = field('Profile ID', 'profileId', state.workspace?.profileId || 'ps_default', { placeholder: 'ps_default' });
-      const company = field('Company / profile name', 'profileName', state.profileSettings?.name || state.workspace?.name || 'LabelOnZeWay');
-      const manifestEmail = field('Daily manifest email', 'manifestEmail', state.profileSettings?.manifestEmail || '', { type: 'email', placeholder: 'operations@example.com' });
-      const saveSettings = action('Save profile settings', 'primary');
-      const use = action('Use profile');
-      const status = document.createElement('p');
-
-      saveSettings.addEventListener('click', () => {
-        const current = store.getState();
-        const settings = { name: company.input.value.trim() || 'LabelOnZeWay', manifestEmail: manifestEmail.input.value.trim() };
-        store.setState({ profileSettings: settings });
-        if (current.workspace?.id) writeProfile(current.workspace.id, current.workspace.profileId || 'ps_default', { ...current, profileSettings: settings });
-        status.textContent = 'Profile settings saved. Push local to publish them for daily manifest close.';
-      });
-
-      use.addEventListener('click', () => {
-        const id = profile.input.value.trim() || 'ps_default';
-        const current = store.getState();
-        if (!current.workspace) {
-          status.textContent = 'Sign in and select a workspace before changing the cloud profile.';
-          return;
-        }
-        const currentId = current.workspace.profileId || 'ps_default';
-        if (id === currentId) {
-          status.textContent = `Profile ${id} already selected.`;
-          return;
-        }
-        writeProfile(current.workspace.id, currentId, current);
-        const target = readProfile(current.workspace.id, id);
-        store.setState({
-          workspace: { ...current.workspace, profileId: id },
-          customers: target.customers,
-          parcels: target.parcels,
-          archive: target.archive,
-          claims: target.claims,
-          profileSettings: target.settings,
-          sync: { status: current.session ? 'ready' : 'local-only', conflict: false },
-        });
-        status.textContent = `Profile ${id} selected. Local data isolated from ${currentId}.`;
-      });
-      const actions = document.createElement('div');
-      actions.className = 'button-row';
-      actions.append(saveSettings, use);
-      card.append(workspace, profile.wrap, company.wrap, manifestEmail.wrap, actions, status);
-      section.append(card);
-      return section;
-    },
-  };
+  return { render(state) {
+    const section = document.createElement('section'); section.className = 'screen'; section.append(heading('Profiles', 'Company identity, manifest delivery settings and isolated operational data.'));
+    const card = document.createElement('div'); card.className = 'workspace-card';
+    const workspace = document.createElement('p'); workspace.textContent = state.workspace ? `Workspace: ${state.workspace.name}` : 'No cloud workspace selected.';
+    const profile = field('Profile ID', 'profileId', state.workspace?.profileId || 'ps_default', { placeholder: 'ps_default' });
+    const company = field('Company / profile name', 'profileName', state.profileSettings?.name || state.workspace?.name || 'LabelOnZeWay');
+    const manifestEmail = field('Daily manifest email', 'manifestEmail', state.profileSettings?.manifestEmail || '', { type: 'email', placeholder: 'operations@example.com' });
+    const saveSettings = action('Save profile settings', 'primary'); const use = action('Use profile'); const remove = action('Delete local profile'); const status = document.createElement('p');
+    saveSettings.addEventListener('click', () => { const current = store.getState(); const settings = { name: company.input.value.trim() || 'LabelOnZeWay', manifestEmail: manifestEmail.input.value.trim() }; store.setState({ profileSettings: settings }); if (current.workspace?.id) writeProfile(current.workspace.id, current.workspace.profileId || 'ps_default', { ...current, profileSettings: settings }); status.textContent = 'Profile settings saved. Push local to publish them for daily manifest close.'; });
+    use.addEventListener('click', () => { const id = profile.input.value.trim() || 'ps_default'; const current = store.getState(); if (!current.workspace) { status.textContent = 'Sign in and select a workspace before changing the cloud profile.'; return; } const currentId = current.workspace.profileId || 'ps_default'; if (id === currentId) { status.textContent = `Profile ${id} already selected.`; return; } writeProfile(current.workspace.id, currentId, current); const target = readProfile(current.workspace.id, id); store.setState({ workspace: { ...current.workspace, profileId: id }, customers: target.customers, parcels: target.parcels, archive: target.archive, claims: target.claims, profileSettings: target.settings, sync: { status: current.session ? 'ready' : 'local-only', conflict: false } }); status.textContent = `Profile ${id} selected. Local data isolated from ${currentId}.`; });
+    remove.addEventListener('click', () => { const current = store.getState(); if (!current.workspace?.id) { status.textContent = 'No workspace selected.'; return; } const id = profile.input.value.trim() || current.workspace.profileId || 'ps_default'; if (id === 'ps_default') { status.textContent = 'The default profile is protected and cannot be deleted.'; return; } localStorage.removeItem(profileKey(current.workspace.id, id)); if ((current.workspace.profileId || 'ps_default') === id) { const fallback = readProfile(current.workspace.id, 'ps_default'); store.setState({ workspace: { ...current.workspace, profileId: 'ps_default' }, customers: fallback.customers, parcels: fallback.parcels, archive: fallback.archive, claims: fallback.claims, profileSettings: fallback.settings, sync: { status: current.session ? 'ready' : 'local-only', conflict: false } }); profile.input.value = 'ps_default'; company.input.value = fallback.settings.name || ''; manifestEmail.input.value = fallback.settings.manifestEmail || ''; status.textContent = `Profile ${id} deleted locally. Fell back safely to ps_default.`; } else status.textContent = `Profile ${id} deleted locally.`; });
+    const actions = document.createElement('div'); actions.className = 'button-row'; actions.append(saveSettings, use, remove); card.append(workspace, profile.wrap, company.wrap, manifestEmail.wrap, actions, status); section.append(card); return section;
+  }};
 }
