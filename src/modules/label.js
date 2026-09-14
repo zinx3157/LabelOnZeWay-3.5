@@ -6,7 +6,7 @@ import { makeTrackingToken } from '../domain/tracking.js';
 import { bytesToBase64, labelEscPos } from '../domain/escpos.js';
 
 function emptyDraft() {
-  return { step: 1, customerId: null, customer: { name: '', phone: '', address: '' }, parcel: { qty: 1, unitPrice: 0, collect: 0, notes: '' } };
+  return { step: 1, customerId: null, customer: { name: '', phone: '', address: '' }, parcel: { qty: 1, unitPrice: 0, collect: 0, deliveryCharge: 0, notes: '' } };
 }
 
 function labelHeading(draft) {
@@ -32,6 +32,7 @@ function labelPreview(draft) {
     ['span', `Qty: ${draft.parcel.qty}`],
     ['span', `Unit: ${formatAr(draft.parcel.unitPrice)} Ar`],
     ['b', `Collect: ${formatAr(draft.parcel.collect)} Ar`],
+    ['span', `Delivery: ${formatAr(draft.parcel.deliveryCharge || 0)} Ar`],
   ]);
   preview.append(brand, identity, rule, details);
   if (draft.parcel.notes) {
@@ -87,7 +88,6 @@ export function createLabelModule({ store, services }) {
         const name = field('Customer name', 'name', draft.customer.name, { placeholder: 'Full name' });
         const phone = field('Phone', 'phone', draft.customer.phone, { type: 'tel', inputmode: 'tel', placeholder: '032 / 033 / 034 / 035 / 037 / 038 / 039' });
         const address = field('Address', 'address', draft.customer.address, { multiline: true, placeholder: 'Delivery address' });
-
         const scanCard = document.createElement('div');
         scanCard.className = 'scan-row';
         const photo = document.createElement('input');
@@ -119,7 +119,6 @@ export function createLabelModule({ store, services }) {
           }
         });
         scanCard.append(photo, scan, scanStatus);
-
         const next = action('Continue to parcel', 'primary');
         next.addEventListener('click', () => {
           const customer = { name: name.input.value.trim(), phone: phone.input.value.trim(), address: address.input.value.trim() };
@@ -132,12 +131,17 @@ export function createLabelModule({ store, services }) {
       if (draft.step === 2) {
         const qty = field('Quantity', 'qty', draft.parcel.qty, { type: 'number', inputmode: 'numeric', min: 1 });
         const price = field('Unit price (Ar)', 'unitPrice', draft.parcel.unitPrice, { type: 'number', inputmode: 'decimal', min: 0 });
+        const delivery = field('Delivery charge (Ar)', 'deliveryCharge', draft.parcel.deliveryCharge || 0, { type: 'number', inputmode: 'decimal', min: 0 });
         const notes = field('Parcel notes', 'notes', draft.parcel.notes, { multiline: true });
         const total = document.createElement('div');
         total.className = 'calculation';
-        const refresh = () => { total.textContent = `Collect: ${formatAr(calculateCollect(qty.input.value, price.input.value))} Ar`; };
+        const refresh = () => {
+          const collect = calculateCollect(qty.input.value, price.input.value);
+          total.textContent = `Collect: ${formatAr(collect)} Ar · Delivery: ${formatAr(Math.max(0, Number(delivery.input.value) || 0))} Ar`;
+        };
         qty.input.addEventListener('input', refresh);
         price.input.addEventListener('input', refresh);
+        delivery.input.addEventListener('input', refresh);
         refresh();
         const actions = document.createElement('div');
         actions.className = 'button-row';
@@ -149,12 +153,13 @@ export function createLabelModule({ store, services }) {
             qty: Math.max(1, Number(qty.input.value) || 1),
             unitPrice: Math.max(0, Number(price.input.value) || 0),
             collect: calculateCollect(qty.input.value, price.input.value),
+            deliveryCharge: Math.max(0, Number(delivery.input.value) || 0),
             notes: notes.input.value.trim(),
           };
           store.update((current) => ({ ...current, labelDraft: { ...current.labelDraft, step: 3, parcel } }));
         });
         actions.append(back, next);
-        panel.append(qty.wrap, price.wrap, total, notes.wrap, actions);
+        panel.append(qty.wrap, price.wrap, delivery.wrap, total, notes.wrap, actions);
       }
 
       if (draft.step === 3) {
@@ -165,11 +170,8 @@ export function createLabelModule({ store, services }) {
         const save = action(draft.editParcelId ? 'Update label' : 'Save label', 'primary');
         const print = action('Print test');
         back.addEventListener('click', () => store.update((current) => ({ ...current, labelDraft: { ...current.labelDraft, step: 2 } })));
-
         const materialize = (current) => {
-          const existing = current.labelDraft.editParcelId
-            ? current.parcels.find((item) => item.id === current.labelDraft.editParcelId)
-            : null;
+          const existing = current.labelDraft.editParcelId ? current.parcels.find((item) => item.id === current.labelDraft.editParcelId) : null;
           return {
             ...(existing || {}),
             id: existing?.id || makeId('parcel'),
@@ -183,7 +185,6 @@ export function createLabelModule({ store, services }) {
             modifiedAt: new Date().toISOString(),
           };
         };
-
         print.addEventListener('click', async () => {
           const parcel = materialize(store.getState());
           try {
@@ -194,7 +195,6 @@ export function createLabelModule({ store, services }) {
             store.setState({ ui: { ...store.getState().ui, notice: error.message } });
           }
         });
-
         save.addEventListener('click', () => {
           store.update((current) => {
             let customerId = current.labelDraft.customerId;
@@ -207,20 +207,10 @@ export function createLabelModule({ store, services }) {
                 customerId = makeId('customer');
                 customers = [...customers, { id: customerId, ...customerData }];
               }
-            } else {
-              customers = customers.map((item) => item.id === customerId ? { ...item, ...customerData } : item);
-            }
+            } else customers = customers.map((item) => item.id === customerId ? { ...item, ...customerData } : item);
             const parcel = { ...materialize(current), customerId };
-            const parcels = current.labelDraft.editParcelId
-              ? current.parcels.map((item) => item.id === current.labelDraft.editParcelId ? parcel : item)
-              : [...current.parcels, parcel];
-            return {
-              ...current,
-              customers,
-              parcels,
-              labelDraft: emptyDraft(),
-              route: 'manifest',
-            };
+            const parcels = current.labelDraft.editParcelId ? current.parcels.map((item) => item.id === current.labelDraft.editParcelId ? parcel : item) : [...current.parcels, parcel];
+            return { ...current, customers, parcels, labelDraft: emptyDraft(), route: 'manifest' };
           });
           location.hash = '#/manifest';
         });
