@@ -7,53 +7,14 @@ on:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   baseline:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Repair broken label module if required
-        if: github.event_name == 'push'
-        run: |
-          if grep -qx 'PLACEHOLDER' src/modules/label.js; then
-            git show 29ded5ba4845a11f908c49a8c420422f3e7e89f8:src/modules/label.js > src/modules/label.js
-            python3 - <<'PY'
-          from pathlib import Path
-          p=Path('src/modules/label.js')
-          s=p.read_text()
-          old="""      if (contact.address) address.input.value = contact.address;
-      detected.replaceChildren();"""
-          new="""      if (contact.address) address.input.value = contact.address;
-      if (contact.amount) {
-        store.update((current) => ({ ...current, labelDraft: { ...current.labelDraft, parcel: { ...current.labelDraft.parcel, unitPrice: contact.amount, collect: calculateCollect(current.labelDraft.parcel?.qty || 1, contact.amount) } } }));
-      }
-      detected.replaceChildren();"""
-          if old not in s: raise SystemExit('single scan insertion point missing')
-          s=s.replace(old,new,1)
-          old2="""      item.contact = { ...item.contact, ...contact };
-      if (contact.amount && !Number(item.unitPrice)) item.unitPrice = contact.amount;
-      item.status = 'review';"""
-          new2="""      item.contact = { ...item.contact, ...contact };
-      if (contact.amount) item.unitPrice = contact.amount;
-      item.status = 'review';"""
-          if old2 not in s: raise SystemExit('batch scan insertion point missing')
-          s=s.replace(old2,new2,1)
-          p.write_text(s)
-          sw=Path('sw.js')
-          import re
-          sw.write_text(re.sub(r'labelonzeway-3\.5-shell-v\d+', 'labelonzeway-3.5-shell-v20', sw.read_text(), count=1))
-          PY
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add src/modules/label.js sw.js
-            git commit -m 'fix: restore app reload and OCR price wiring'
-            git push
-          fi
       - uses: actions/setup-node@v4
         with:
           node-version: 22
