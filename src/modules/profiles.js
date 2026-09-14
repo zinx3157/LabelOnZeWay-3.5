@@ -5,18 +5,23 @@ function profileKey(workspaceId, profileId) {
   return `lz35.profileData:${workspaceId}:${profileId}`;
 }
 
+function emptyProfile() {
+  return { customers: [], parcels: [], archive: [], claims: [], settings: { name: '', manifestEmail: '' } };
+}
+
 function readProfile(workspaceId, profileId) {
   try {
     const parsed = JSON.parse(localStorage.getItem(profileKey(workspaceId, profileId)) || 'null');
-    if (!parsed) return { customers: [], parcels: [], archive: [], claims: [] };
+    if (!parsed) return emptyProfile();
     return {
       customers: Array.isArray(parsed.customers) ? parsed.customers : [],
       parcels: Array.isArray(parsed.parcels) ? parsed.parcels : [],
       archive: Array.isArray(parsed.archive) ? parsed.archive : [],
       claims: Array.isArray(parsed.claims) ? parsed.claims : [],
+      settings: parsed.settings && typeof parsed.settings === 'object' ? parsed.settings : { name: '', manifestEmail: '' },
     };
   } catch {
-    return { customers: [], parcels: [], archive: [], claims: [] };
+    return emptyProfile();
   }
 }
 
@@ -26,6 +31,7 @@ function writeProfile(workspaceId, profileId, state) {
     parcels: state.parcels || [],
     archive: state.archive || [],
     claims: state.claims || [],
+    settings: state.profileSettings || { name: '', manifestEmail: '' },
     savedAt: new Date().toISOString(),
   }));
 }
@@ -35,15 +41,27 @@ export function createProfilesModule({ store }) {
     render(state) {
       const section = document.createElement('section');
       section.className = 'screen';
-      section.append(heading('Profiles', 'Company/workspace identity used by labels, sync and printing.'));
+      section.append(heading('Profiles', 'Company identity, manifest delivery settings and isolated operational data.'));
       const card = document.createElement('div');
       card.className = 'workspace-card';
       const workspace = document.createElement('p');
       workspace.textContent = state.workspace ? `Workspace: ${state.workspace.name}` : 'No cloud workspace selected.';
       const profile = field('Profile ID', 'profileId', state.workspace?.profileId || 'ps_default', { placeholder: 'ps_default' });
-      const save = action('Use profile', 'primary');
+      const company = field('Company / profile name', 'profileName', state.profileSettings?.name || state.workspace?.name || 'LabelOnZeWay');
+      const manifestEmail = field('Daily manifest email', 'manifestEmail', state.profileSettings?.manifestEmail || '', { type: 'email', placeholder: 'operations@example.com' });
+      const saveSettings = action('Save profile settings', 'primary');
+      const use = action('Use profile');
       const status = document.createElement('p');
-      save.addEventListener('click', () => {
+
+      saveSettings.addEventListener('click', () => {
+        const current = store.getState();
+        const settings = { name: company.input.value.trim() || 'LabelOnZeWay', manifestEmail: manifestEmail.input.value.trim() };
+        store.setState({ profileSettings: settings });
+        if (current.workspace?.id) writeProfile(current.workspace.id, current.workspace.profileId || 'ps_default', { ...current, profileSettings: settings });
+        status.textContent = 'Profile settings saved. Push local to publish them for daily manifest close.';
+      });
+
+      use.addEventListener('click', () => {
         const id = profile.input.value.trim() || 'ps_default';
         const current = store.getState();
         if (!current.workspace) {
@@ -63,11 +81,15 @@ export function createProfilesModule({ store }) {
           parcels: target.parcels,
           archive: target.archive,
           claims: target.claims,
+          profileSettings: target.settings,
           sync: { status: current.session ? 'ready' : 'local-only', conflict: false },
         });
         status.textContent = `Profile ${id} selected. Local data isolated from ${currentId}.`;
       });
-      card.append(workspace, profile.wrap, save, status);
+      const actions = document.createElement('div');
+      actions.className = 'button-row';
+      actions.append(saveSettings, use);
+      card.append(workspace, profile.wrap, company.wrap, manifestEmail.wrap, actions, status);
       section.append(card);
       return section;
     },
