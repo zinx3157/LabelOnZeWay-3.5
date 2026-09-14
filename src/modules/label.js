@@ -5,11 +5,15 @@ import { calculateCollect, formatAr } from '../domain/money.js';
 import { makeTrackingToken } from '../domain/tracking.js';
 import { bytesToBase64, labelEscPos } from '../domain/escpos.js';
 
-function labelHeading(step) {
+function emptyDraft() {
+  return { step: 1, customerId: null, customer: { name: '', phone: '', address: '' }, parcel: { qty: 1, unitPrice: 0, collect: 0, notes: '' } };
+}
+
+function labelHeading(draft) {
   const badge = document.createElement('span');
   badge.className = 'step-badge';
-  badge.textContent = `Step ${step} of 3`;
-  return heading('New Label', 'Customer → Parcel → Review / Print', badge);
+  badge.textContent = `Step ${draft.step} of 3`;
+  return heading(draft.editParcelId ? 'Edit Label' : 'New Label', 'Customer → Parcel → Review / Print', badge);
 }
 
 function labelPreview(draft) {
@@ -44,7 +48,7 @@ export function createLabelModule({ store, services }) {
       const section = document.createElement('section');
       section.className = 'screen';
       const draft = state.labelDraft;
-      section.append(labelHeading(draft.step));
+      section.append(labelHeading(draft));
       const panel = document.createElement('div');
       panel.className = 'workspace-card';
 
@@ -126,19 +130,28 @@ export function createLabelModule({ store, services }) {
         const actions = document.createElement('div');
         actions.className = 'button-row';
         const back = action('Edit parcel');
-        const save = action('Save label', 'primary');
+        const save = action(draft.editParcelId ? 'Update label' : 'Save label', 'primary');
         const print = action('Print test');
         back.addEventListener('click', () => store.update((current) => ({ ...current, labelDraft: { ...current.labelDraft, step: 2 } })));
-        const materialize = (current) => ({
-          id: makeId('parcel'),
-          pickId: makePickId(current.parcels),
-          trackingToken: makeTrackingToken(),
-          customerId: current.labelDraft.customerId,
-          customer: current.labelDraft.customer,
-          ...current.labelDraft.parcel,
-          status: 'ready',
-          createdAt: new Date().toISOString(),
-        });
+
+        const materialize = (current) => {
+          const existing = current.labelDraft.editParcelId
+            ? current.parcels.find((item) => item.id === current.labelDraft.editParcelId)
+            : null;
+          return {
+            ...(existing || {}),
+            id: existing?.id || makeId('parcel'),
+            pickId: existing?.pickId || makePickId(current.parcels),
+            trackingToken: existing?.trackingToken || makeTrackingToken(),
+            customerId: current.labelDraft.customerId,
+            customer: current.labelDraft.customer,
+            ...current.labelDraft.parcel,
+            status: existing?.status || 'ready',
+            createdAt: existing?.createdAt || new Date().toISOString(),
+            modifiedAt: new Date().toISOString(),
+          };
+        };
+
         print.addEventListener('click', async () => {
           const parcel = materialize(store.getState());
           try {
@@ -149,24 +162,31 @@ export function createLabelModule({ store, services }) {
             store.setState({ ui: { ...store.getState().ui, notice: error.message } });
           }
         });
+
         save.addEventListener('click', () => {
           store.update((current) => {
             let customerId = current.labelDraft.customerId;
             let customers = current.customers;
+            const customerData = current.labelDraft.customer;
             if (!customerId) {
-              const match = customers.find((item) => item.name.toLowerCase() === current.labelDraft.customer.name.toLowerCase() && item.phone === current.labelDraft.customer.phone);
+              const match = customers.find((item) => item.name.toLowerCase() === customerData.name.toLowerCase() && item.phone === customerData.phone);
               if (match) customerId = match.id;
               else {
                 customerId = makeId('customer');
-                customers = [...customers, { id: customerId, ...current.labelDraft.customer }];
+                customers = [...customers, { id: customerId, ...customerData }];
               }
+            } else {
+              customers = customers.map((item) => item.id === customerId ? { ...item, ...customerData } : item);
             }
             const parcel = { ...materialize(current), customerId };
+            const parcels = current.labelDraft.editParcelId
+              ? current.parcels.map((item) => item.id === current.labelDraft.editParcelId ? parcel : item)
+              : [...current.parcels, parcel];
             return {
               ...current,
               customers,
-              parcels: [...current.parcels, parcel],
-              labelDraft: { step: 1, customerId: null, customer: { name: '', phone: '', address: '' }, parcel: { qty: 1, unitPrice: 0, collect: 0, notes: '' } },
+              parcels,
+              labelDraft: emptyDraft(),
               route: 'manifest',
             };
           });
