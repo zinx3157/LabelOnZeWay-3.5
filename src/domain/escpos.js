@@ -62,12 +62,20 @@ const CMD = {
 
 function line(text = '') { return encodeText(`${text}\n`); }
 
+function compactQrData(value) {
+  const text = String(value || '').trim();
+  return text.replace(/#\/tracking$/i, '');
+}
+
 function qrCommands(data) {
-  const body = encodeText(data);
+  const body = encodeText(compactQrData(data));
   const storeLength = body.length + 3;
   return concat(
+    // QR Model 2.
     new Uint8Array([0x1d,0x28,0x6b,0x04,0x00,0x31,0x41,0x32,0x00]),
-    new Uint8Array([0x1d,0x28,0x6b,0x03,0x00,0x31,0x43,0x06]),
+    // Module size 4: cleaner, less dominant on 72 mm thermal stock.
+    new Uint8Array([0x1d,0x28,0x6b,0x03,0x00,0x31,0x43,0x04]),
+    // Error correction M: reliable without making the symbol unnecessarily dense.
     new Uint8Array([0x1d,0x28,0x6b,0x03,0x00,0x31,0x45,0x31]),
     new Uint8Array([0x1d,0x28,0x6b,storeLength & 0xff,(storeLength >> 8) & 0xff,0x31,0x50,0x30]), body,
     new Uint8Array([0x1d,0x28,0x6b,0x03,0x00,0x31,0x51,0x30]),
@@ -113,8 +121,10 @@ export function labelEscPos(parcel, options = {}) {
   parts.push(CMD.double, line(leftRight(parcel.pickId, String(parcel.qty), 21)), CMD.normal, CMD.boldOff);
   parts.push(line(divider));
 
-  // Tracking QR sits high on the label, directly after the identity block.
-  parts.push(CMD.center, qrCommands(qrData), CMD.boldOn, line('SCAN POUR SUIVRE'), CMD.boldOff, CMD.left, line(divider));
+  // Compact tracking QR with breathing room so it scans cleanly and does not dominate the label.
+  parts.push(CMD.center, line(''), qrCommands(qrData), line(''));
+  parts.push(CMD.boldOn, line('SCAN POUR SUIVRE'), CMD.boldOff);
+  parts.push(line(clip(parcel.pickId, 24)), CMD.left, line(divider));
 
   // Recipient hierarchy.
   parts.push(CMD.boldOn, line('DESTINATAIRE'), CMD.doubleWidth, line(clip(parcel.customer?.name || '', 21)), CMD.normal, CMD.boldOff);
