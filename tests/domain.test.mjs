@@ -34,12 +34,22 @@ test('Bulk status updates preserve unselected parcels', () => {
   assert.equal(output[1].status, 'ready');
 });
 
-test('Reconciliation uses one consistent financial model', () => {
+test('Reconciliation separates merchandise Collect from delivery revenue', () => {
   const totals = reconciliationTotals([
-    { qty: 2, collect: 1000, status: 'delivered' },
-    { qty: 3, collect: 2500, status: 'ready' },
+    { qty: 2, collect: 1000, deliveryCharge: 200, status: 'delivered' },
+    { qty: 3, collect: 2500, deliveryCharge: 300, status: 'ready' },
   ]);
-  assert.deepEqual(totals, { parcels: 2, quantity: 5, collect: 3500, deliveredCollect: 1000, outstandingCollect: 2500 });
+  assert.deepEqual(totals, {
+    parcels: 2,
+    quantity: 5,
+    collect: 3500,
+    deliveryRevenue: 500,
+    totalReceivable: 4000,
+    deliveredCollect: 1000,
+    deliveredDeliveryRevenue: 200,
+    outstandingCollect: 2500,
+    outstandingDeliveryRevenue: 300,
+  });
 });
 
 test('OCR contact parser accepts Madagascar mobile prefixes and filters address noise', () => {
@@ -70,12 +80,14 @@ test('72mm manifest ESC/POS contains rows and cut command', () => {
 });
 
 test('Repeated status/reconciliation loop remains deterministic', () => {
-  let parcels = Array.from({ length: 50 }, (_, index) => ({ id: String(index), qty: 1, collect: 100, status: 'ready' }));
+  let parcels = Array.from({ length: 50 }, (_, index) => ({ id: String(index), qty: 1, collect: 100, deliveryCharge: 10, status: 'ready' }));
   for (let cycle = 0; cycle < 200; cycle += 1) {
     const selected = parcels.filter((_, index) => index % 2 === cycle % 2).map((item) => item.id);
     parcels = updateParcelStatuses(parcels, selected, cycle % 3 === 0 ? 'dispatch' : 'delivery');
     const totals = reconciliationTotals(parcels);
     assert.equal(totals.parcels, 50);
     assert.equal(totals.collect, 5000);
+    assert.equal(totals.deliveryRevenue, 500);
+    assert.equal(totals.totalReceivable, 5500);
   }
 });
