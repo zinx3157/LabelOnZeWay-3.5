@@ -22,6 +22,7 @@ function validateBackup(snapshot) {
   for (const key of ['customers','parcels','archive']) {
     if (!Array.isArray(snapshot[key])) throw new Error(`Backup field ${key} is invalid.`);
   }
+  if (snapshot.claims != null && !Array.isArray(snapshot.claims)) throw new Error('Backup field claims is invalid.');
   return snapshot;
 }
 
@@ -36,14 +37,14 @@ export function createReportsModule({ store }) {
 
       const exportCsv = action('Export manifest CSV', 'primary');
       exportCsv.addEventListener('click', () => {
-        const header = ['Pick ID','Customer','Phone','Address','Qty','Unit Price','Collect','Status','Created'];
-        const rows = state.parcels.map((parcel) => [parcel.pickId, parcel.customer?.name, parcel.customer?.phone, parcel.customer?.address, parcel.qty, parcel.unitPrice, parcel.collect, parcel.status, parcel.createdAt]);
+        const header = ['Pick ID','Customer','Phone','Address','Qty','Unit Price','Collect','Delivery Charge','Status','Created'];
+        const rows = state.parcels.map((parcel) => [parcel.pickId, parcel.customer?.name, parcel.customer?.phone, parcel.customer?.address, parcel.qty, parcel.unitPrice, parcel.collect, parcel.deliveryCharge || 0, parcel.status, parcel.createdAt]);
         download(`labelonzeway-manifest-${new Date().toISOString().slice(0,10)}.csv`, 'text/csv;charset=utf-8', [header, ...rows].map((row) => row.map(csvEscape).join(',')).join('\n'));
       });
 
       const backup = action('Download JSON backup');
       backup.addEventListener('click', () => {
-        const snapshot = { version: '3.5', exportedAt: new Date().toISOString(), customers: state.customers, parcels: state.parcels, archive: state.archive, workspace: state.workspace };
+        const snapshot = { version: '3.5', exportedAt: new Date().toISOString(), customers: state.customers, parcels: state.parcels, archive: state.archive, claims: state.claims || [], workspace: state.workspace };
         download(`labelonzeway-backup-${new Date().toISOString().slice(0,10)}.json`, 'application/json', JSON.stringify(snapshot, null, 2));
       });
 
@@ -60,15 +61,17 @@ export function createReportsModule({ store }) {
         restoreInput.value = '';
         try {
           const snapshot = validateBackup(JSON.parse(await file.text()));
-          store.setState({ customers: snapshot.customers, parcels: snapshot.parcels, archive: snapshot.archive, workspace: snapshot.workspace || state.workspace });
-          status.textContent = `Backup restored: ${snapshot.parcels.length} active parcels, ${snapshot.archive.length} archived.`;
+          store.setState({ customers: snapshot.customers, parcels: snapshot.parcels, archive: snapshot.archive, claims: snapshot.claims || [], workspace: snapshot.workspace || state.workspace });
+          status.textContent = `Backup restored: ${snapshot.parcels.length} active parcels, ${snapshot.archive.length} archived, ${(snapshot.claims || []).length} claims.`;
         } catch (error) {
           status.textContent = `Restore rejected: ${error.message}`;
         }
       });
 
       const summary = document.createElement('p');
-      summary.textContent = `${state.parcels.length} active parcels · ${state.archive.length} archived · ${formatAr(state.parcels.reduce((sum, item) => sum + Number(item.collect || 0), 0))} Ar active Collect`;
+      const collect = state.parcels.reduce((sum, item) => sum + Number(item.collect || 0), 0);
+      const delivery = state.parcels.reduce((sum, item) => sum + Number(item.deliveryCharge || 0), 0);
+      summary.textContent = `${state.parcels.length} active · ${state.archive.length} archived · ${(state.claims || []).length} claims · ${formatAr(collect)} Ar Collect · ${formatAr(delivery)} Ar Delivery`;
       const row = document.createElement('div');
       row.className = 'button-row';
       row.append(exportCsv, backup, restore, restoreInput);
