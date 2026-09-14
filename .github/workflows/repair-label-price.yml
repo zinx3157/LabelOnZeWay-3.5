@@ -1,0 +1,57 @@
+name: Repair label scan price wiring
+on:
+  push:
+    paths: ['.github/workflows/repair-label-price.yml']
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Restore label module and wire OCR price
+        run: |
+          git checkout HEAD^ -- src/modules/label.js
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/modules/label.js')
+          s=p.read_text()
+          old="""      if (contact.address) address.input.value = contact.address;
+      detected.replaceChildren();"""
+          new="""      if (contact.address) address.input.value = contact.address;
+      if (contact.amount) {
+        store.update((current) => ({
+          ...current,
+          labelDraft: {
+            ...current.labelDraft,
+            parcel: {
+              ...current.labelDraft.parcel,
+              unitPrice: contact.amount,
+              collect: calculateCollect(current.labelDraft.parcel?.qty || 1, contact.amount),
+            },
+          },
+        }));
+      }
+      detected.replaceChildren();"""
+          if old not in s: raise SystemExit('single scan target not found')
+          s=s.replace(old,new,1)
+          old2="""      item.contact = { ...item.contact, ...contact };
+      if (contact.amount && !Number(item.unitPrice)) item.unitPrice = contact.amount;
+      item.status = 'review';"""
+          new2="""      item.contact = { ...item.contact, ...contact };
+      if (contact.amount) item.unitPrice = contact.amount;
+      item.status = 'review';"""
+          if old2 not in s: raise SystemExit('batch scan target not found')
+          s=s.replace(old2,new2,1)
+          p.write_text(s)
+          p=Path('sw.js')
+          s=p.read_text().replace("labelonzeway-3.5-shell-v18","labelonzeway-3.5-shell-v19")
+          p.write_text(s)
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/modules/label.js sw.js
+          git commit -m 'fix: persist OCR price into single and batch scan'
+          git push
