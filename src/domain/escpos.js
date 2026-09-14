@@ -38,6 +38,13 @@ function wrap(value, width = 42, maxLines = 3) {
   return lines;
 }
 
+function leftRight(left, right, width = 42) {
+  const a = asciiText(left).trim();
+  const b = asciiText(right).trim();
+  const gap = Math.max(1, width - a.length - b.length);
+  return `${a}${' '.repeat(gap)}${b}`.slice(0, width);
+}
+
 const CMD = {
   init: new Uint8Array([0x1b,0x40]),
   left: new Uint8Array([0x1b,0x61,0x00]),
@@ -47,6 +54,9 @@ const CMD = {
   normal: new Uint8Array([0x1d,0x21,0x00]),
   doubleWidth: new Uint8Array([0x1d,0x21,0x10]),
   double: new Uint8Array([0x1d,0x21,0x11]),
+  inverseOn: new Uint8Array([0x1d,0x42,0x01]),
+  inverseOff: new Uint8Array([0x1d,0x42,0x00]),
+  feed1: new Uint8Array([0x1b,0x64,0x01]),
   cut: new Uint8Array([0x1d,0x56,0x42,0x00]),
 };
 
@@ -57,7 +67,7 @@ function qrCommands(data) {
   const storeLength = body.length + 3;
   return concat(
     new Uint8Array([0x1d,0x28,0x6b,0x04,0x00,0x31,0x41,0x32,0x00]),
-    new Uint8Array([0x1d,0x28,0x6b,0x03,0x00,0x31,0x43,0x05]),
+    new Uint8Array([0x1d,0x28,0x6b,0x03,0x00,0x31,0x43,0x06]),
     new Uint8Array([0x1d,0x28,0x6b,0x03,0x00,0x31,0x45,0x31]),
     new Uint8Array([0x1d,0x28,0x6b,storeLength & 0xff,(storeLength >> 8) & 0xff,0x31,0x50,0x30]), body,
     new Uint8Array([0x1d,0x28,0x6b,0x03,0x00,0x31,0x51,0x30]),
@@ -71,7 +81,7 @@ function localStamp(value = new Date()) {
   const year = date.getFullYear();
   const hour = String(date.getHours()).padStart(2, '0');
   const minute = String(date.getMinutes()).padStart(2, '0');
-  return `${day}/${month}/${year} ${hour}:${minute}`;
+  return { date: `${day}/${month}/${year}`, time: `${hour}:${minute}` };
 }
 
 function nextDay(value = new Date()) {
@@ -84,27 +94,52 @@ function nextDay(value = new Date()) {
 
 export function labelEscPos(parcel, options = {}) {
   const created = parcel.createdAt ? new Date(parcel.createdAt) : new Date();
+  const stamp = localStamp(created);
   const qrData = options.trackingUrl || parcel.trackingUrl || parcel.trackingToken || parcel.pickId || 'LabelOnZeWay';
   const addressLines = wrap(parcel.customer?.address || '', 42, 3);
   const collect = Number(parcel.collect || 0).toLocaleString('fr-FR').replace(/\u202f/g, ' ');
   const delivery = Number(parcel.deliveryCharge || 0).toLocaleString('fr-FR').replace(/\u202f/g, ' ');
   const paymentMode = asciiText(parcel.paymentMode || 'Especes');
+  const divider = '------------------------------------------';
 
-  const parts = [CMD.init, CMD.left, CMD.normal, CMD.boldOn, line('LABELONZEWAY'), CMD.boldOff, line('Ship Smarter. Deliver Further.'), line(localStamp(created)), line('------------------------------------------')];
+  const parts = [CMD.init, CMD.left, CMD.normal];
 
-  parts.push(CMD.boldOn, CMD.double, line(`PICK ${parcel.pickId}`), CMD.normal, CMD.boldOff, CMD.boldOn, line(`QTY ${parcel.qty}`), CMD.boldOff, line(''));
-  parts.push(CMD.boldOn, line('DESTINATAIRE'), CMD.doubleWidth, line(parcel.customer?.name || ''), CMD.normal, CMD.boldOff);
-  if (parcel.customer?.phone) parts.push(CMD.boldOn, line(`TEL ${parcel.customer.phone}`), CMD.boldOff);
+  // Header mirrors the browser preview: brand left, date/time right.
+  parts.push(CMD.boldOn, line(leftRight('LABELONZEWAY', stamp.date)), CMD.boldOff);
+  parts.push(line(leftRight('Ship Smarter. Deliver Further.', stamp.time)), line(divider));
+
+  // Pick + quantity block kept on the same visual row.
+  parts.push(CMD.boldOn, line(leftRight('PICK', 'QTY')));
+  parts.push(CMD.double, line(leftRight(parcel.pickId, String(parcel.qty), 21)), CMD.normal, CMD.boldOff);
+  parts.push(line(divider));
+
+  // Tracking QR sits high on the label, directly after the identity block.
+  parts.push(CMD.center, qrCommands(qrData), CMD.boldOn, line('SCAN POUR SUIVRE'), CMD.boldOff, CMD.left, line(divider));
+
+  // Recipient hierarchy.
+  parts.push(CMD.boldOn, line('DESTINATAIRE'), CMD.doubleWidth, line(clip(parcel.customer?.name || '', 21)), CMD.normal, CMD.boldOff);
+  if (parcel.customer?.phone) parts.push(CMD.boldOn, line(`TEL  ${parcel.customer.phone}`), CMD.boldOff);
   for (const addressLine of addressLines) parts.push(line(addressLine));
-  parts.push(line('------------------------------------------'));
+  parts.push(line(divider));
 
-  parts.push(CMD.center, CMD.boldOn, line('A COLLECTER'), CMD.double, line(`${collect} Ar`), CMD.normal, CMD.boldOff, line(`Mode ${paymentMode}`));
+  // Collect block with strong visual emphasis.
+  parts.push(CMD.center, CMD.boldOn, line('A COLLECTER'), CMD.double, line(`${collect} Ar`), CMD.normal, CMD.boldOff);
+  parts.push(line(`Mode ${paymentMode}`));
   if (Number(parcel.deliveryCharge || 0) > 0) parts.push(line(`Livraison ${delivery} Ar`));
-  parts.push(CMD.left, line('------------------------------------------'), CMD.boldOn, line(`LIVRAISON PREVUE  ${nextDay(created)}`), CMD.boldOff, line(''));
+  parts.push(CMD.left, line(divider));
 
-  parts.push(CMD.center, qrCommands(qrData), CMD.boldOn, line('SCAN POUR SUIVRE'), CMD.boldOff, line(''));
-  if (parcel.notes) for (const noteLine of wrap(parcel.notes, 42, 2)) parts.push(line(noteLine));
-  parts.push(line('Misaotra betsaka ! Merci pour votre confiance !'), line('LABELONZEWAY | PEOPLE. PARCELS. PROGRESS.'), line(''), line(''), CMD.cut);
+  // Delivery block.
+  parts.push(CMD.boldOn, line(leftRight('LIVRAISON PREVUE', nextDay(created))), CMD.boldOff);
+  parts.push(line(leftRight('Cree', stamp.time)), line(divider));
+
+  if (parcel.notes) {
+    parts.push(CMD.boldOn, line('NOTES'), CMD.boldOff);
+    for (const noteLine of wrap(parcel.notes, 42, 2)) parts.push(line(noteLine));
+    parts.push(line(divider));
+  }
+
+  parts.push(CMD.center, CMD.boldOn, line('Misaotra betsaka !'), line('Merci pour votre confiance !'), CMD.boldOff);
+  parts.push(line('LABELONZEWAY | PEOPLE. PARCELS. PROGRESS.'), line(''), line(''), CMD.cut);
   return concat(...parts);
 }
 
