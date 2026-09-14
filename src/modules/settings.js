@@ -1,4 +1,5 @@
 import { field, action } from '../components/form.js';
+import { bytesToBase64 } from '../domain/escpos.js';
 
 function heading(title, description) {
   const wrap = document.createElement('div');
@@ -13,14 +14,20 @@ function heading(title, description) {
   return wrap;
 }
 
+function testReceipt() {
+  const text = '\x1b@LABELONZEWAY\nPOS80C TEST OK\n\n\n\x1dVB\x00';
+  return bytesToBase64(new TextEncoder().encode(text));
+}
+
 export function createSettingsModule({ store, services }) {
   return {
     render(state) {
       const section = document.createElement('section');
       section.className = 'screen';
-      section.append(heading('Settings', 'Cloud session, workspace synchronization and local print configuration.'));
+      section.append(heading('Settings', 'Cloud account, workspace sync and printer status.'));
       const grid = document.createElement('div');
       grid.className = 'settings-grid';
+
       const cloud = document.createElement('article');
       cloud.className = 'workspace-card';
       const cloudTitle = document.createElement('h2');
@@ -91,22 +98,91 @@ export function createSettingsModule({ store, services }) {
       }
 
       const printing = document.createElement('article');
-      printing.className = 'workspace-card';
+      printing.className = 'workspace-card printer-card';
+      const top = document.createElement('div');
+      top.className = 'printer-card-head';
+      const identity = document.createElement('div');
       const printTitle = document.createElement('h2');
-      printTitle.textContent = 'POS80C';
+      printTitle.textContent = 'POS80C Printer';
+      const printSub = document.createElement('p');
+      printSub.textContent = 'Automatic local/cloud printing with PDF fallback.';
+      identity.append(printTitle, printSub);
+      const badge = document.createElement('span');
+      badge.className = 'printer-status is-neutral';
+      badge.textContent = 'Not checked';
+      top.append(identity, badge);
+
+      const result = document.createElement('p');
+      result.className = 'printer-result';
+      result.textContent = 'Daily printing uses the saved POS80C connection automatically.';
+
+      const quickActions = document.createElement('div');
+      quickActions.className = 'button-row';
+      const test = action('Test Print', 'primary');
+      const advancedToggle = action('Advanced');
+      quickActions.append(test, advancedToggle);
+
+      const advanced = document.createElement('div');
+      advanced.className = 'printer-advanced';
+      advanced.hidden = true;
       const defaults = services.print.defaults;
       const bridge = field('Mac bridge URL', 'bridge', localStorage.getItem('lz35.print.bridgeUrl') || defaults.bridgeUrl);
       const ip = field('Printer IP', 'printerIp', localStorage.getItem('lz35.print.printerIp') || defaults.printerIp);
       const port = field('Printer port', 'printerPort', localStorage.getItem('lz35.print.printerPort') || defaults.printerPort, { type: 'number', inputmode: 'numeric' });
-      const save = action('Save print settings', 'primary');
-      const health = action('Test bridge');
-      const result = document.createElement('p');
-      save.addEventListener('click', () => { localStorage.setItem('lz35.print.bridgeUrl', bridge.input.value.trim()); localStorage.setItem('lz35.print.printerIp', ip.input.value.trim()); localStorage.setItem('lz35.print.printerPort', port.input.value.trim()); result.textContent = 'Print settings saved locally.'; });
-      health.addEventListener('click', async () => { const status = await services.print.health(); result.textContent = status.bridge === 'online' ? `Mac bridge online${status.printer === 'online' ? ' · POS80C online.' : ' · printer not confirmed.'}` : `Mac bridge offline: ${status.error}`; });
-      const row = document.createElement('div');
-      row.className = 'button-row';
-      row.append(save, health);
-      printing.append(printTitle, bridge.wrap, ip.wrap, port.wrap, row, result);
+      const save = action('Save advanced settings');
+      const health = action('Run diagnostics');
+      const advancedActions = document.createElement('div');
+      advancedActions.className = 'button-row';
+      advancedActions.append(save, health);
+      advanced.append(bridge.wrap, ip.wrap, port.wrap, advancedActions);
+
+      advancedToggle.addEventListener('click', () => {
+        advanced.hidden = !advanced.hidden;
+        advancedToggle.textContent = advanced.hidden ? 'Advanced' : 'Hide advanced';
+      });
+      save.addEventListener('click', () => {
+        localStorage.setItem('lz35.print.bridgeUrl', bridge.input.value.trim());
+        localStorage.setItem('lz35.print.printerIp', ip.input.value.trim());
+        localStorage.setItem('lz35.print.printerPort', port.input.value.trim());
+        result.textContent = 'Advanced printer settings saved.';
+      });
+      health.addEventListener('click', async () => {
+        badge.textContent = 'Checking…';
+        badge.className = 'printer-status is-neutral';
+        const status = await services.print.health();
+        if (status.bridge === 'online' && status.printer === 'online') {
+          badge.textContent = 'Ready';
+          badge.className = 'printer-status is-ready';
+          result.textContent = 'Mac bridge and POS80C are online.';
+        } else if (status.bridge === 'online') {
+          badge.textContent = 'Bridge online';
+          badge.className = 'printer-status is-warning';
+          result.textContent = 'Mac bridge is online; printer connection is not yet confirmed.';
+        } else {
+          badge.textContent = 'Offline';
+          badge.className = 'printer-status is-offline';
+          result.textContent = `Printer path unavailable: ${status.error || 'bridge offline'}`;
+        }
+      });
+      test.addEventListener('click', async () => {
+        test.disabled = true;
+        badge.textContent = 'Printing…';
+        badge.className = 'printer-status is-neutral';
+        try {
+          const output = await services.print.printWithRetry({ data: testReceipt(), labels: 1 }, { attempts: 2 });
+          badge.textContent = 'Ready';
+          badge.className = 'printer-status is-ready';
+          result.textContent = output.adapter === 'cloud' ? 'Test print queued through Cloud Print.' : 'Test print sent to POS80C.';
+        } catch (error) {
+          badge.textContent = 'Offline';
+          badge.className = 'printer-status is-offline';
+          result.textContent = `Test print failed: ${error.message}`;
+        } finally {
+          test.disabled = false;
+        }
+      });
+
+      printing.append(top, result, quickActions, advanced);
       if (state.ui?.notice) { const notice = document.createElement('div'); notice.className = 'calculation'; notice.textContent = state.ui.notice; section.append(notice); }
       grid.append(cloud, printing);
       section.append(grid);
