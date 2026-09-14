@@ -37,6 +37,7 @@
 .thermal-brand-copy strong { font: 900 24px/1 system-ui,sans-serif; letter-spacing: -.035em; }
 .thermal-brand-copy span { margin-top: 4px; font: 650 11px/1.1 system-ui,sans-serif; letter-spacing: .01em; }
 .thermal-stamp { display: grid; justify-items: end; gap: 3px; font-size: 11px; white-space: nowrap; }
+.thermal-stamp > span { display: none; }
 .thermal-stamp strong { font: 900 18px/1 system-ui,sans-serif; }
 
 .thermal-pick-row {
