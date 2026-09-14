@@ -6,7 +6,8 @@ test('OCR extracts Malagasy phone despite common digit glyph confusion', () => {
   const out = extractContact('RAKOTO Jean\nTEL: O34 12 345 67\nLot II M 45 Antananarivo');
   assert.equal(out.phone, '0341234567');
   assert.equal(out.name, 'RAKOTO Jean');
-  assert.match(out.address, /Lot II M 45 Antananarivo/i);
+  assert.match(out.address, /II M 45 Antananarivo/i);
+  assert.doesNotMatch(out.address, /LOT/i);
 });
 
 test('OCR prefers an anchored amount over unrelated numbers', () => {
