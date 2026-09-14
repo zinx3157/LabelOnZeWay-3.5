@@ -1,5 +1,6 @@
 import { formatAr } from '../domain/money.js';
 import { PARCEL_STATUSES, updateParcelStatuses } from '../domain/manifest.js';
+import { bytesToBase64, manifestEscPos } from '../domain/escpos.js';
 import { action } from '../components/form.js';
 import { heading } from '../components/view.js';
 
@@ -10,7 +11,7 @@ function cell(label, value) {
   return td;
 }
 
-export function createManifestModule({ store }) {
+export function createManifestModule({ store, services }) {
   return {
     render(state) {
       const section = document.createElement('section');
@@ -45,6 +46,39 @@ export function createManifestModule({ store }) {
         store.update((current) => ({ ...current, parcels: updateParcelStatuses(current.parcels, [...selected], status.value) }));
       });
       toolbar.append(selection, status, apply);
+
+      const outputs = document.createElement('div');
+      outputs.className = 'button-row';
+      const thermal = action('Print 72mm manifest');
+      const a4 = action('Print A4');
+      const closeDelivered = action('Close delivered');
+      const outputStatus = document.createElement('span');
+      thermal.addEventListener('click', async () => {
+        thermal.disabled = true;
+        try {
+          const result = await services.print.printWithRetry({ data: bytesToBase64(manifestEscPos(store.getState().parcels)), labels: 1 }, { attempts: 2 });
+          outputStatus.textContent = result.adapter === 'cloud' ? '72mm manifest queued.' : '72mm manifest printed.';
+        } catch (error) {
+          outputStatus.textContent = `Manifest print failed: ${error.message}`;
+        } finally {
+          thermal.disabled = false;
+        }
+      });
+      a4.addEventListener('click', () => window.print());
+      closeDelivered.addEventListener('click', () => {
+        const delivered = store.getState().parcels.filter((parcel) => parcel.status === 'delivered');
+        if (!delivered.length) {
+          outputStatus.textContent = 'No delivered parcels to close.';
+          return;
+        }
+        const ids = new Set(delivered.map((item) => item.id));
+        store.update((current) => ({
+          ...current,
+          parcels: current.parcels.filter((item) => !ids.has(item.id)),
+          archive: [...current.archive, ...delivered.map((item) => ({ ...item, archivedAt: new Date().toISOString() }))],
+        }));
+      });
+      outputs.append(thermal, a4, closeDelivered, outputStatus);
 
       const tableWrap = document.createElement('div');
       tableWrap.className = 'table-card';
@@ -117,7 +151,7 @@ export function createManifestModule({ store }) {
       }
       table.append(thead, body);
       tableWrap.append(table);
-      section.append(toolbar, tableWrap);
+      section.append(toolbar, outputs, tableWrap);
       return section;
     },
   };
