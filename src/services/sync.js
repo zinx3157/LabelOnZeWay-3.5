@@ -1,4 +1,4 @@
-const ENTITY_TYPES = Object.freeze(['customer','parcel_active','parcel_archive']);
+const ENTITY_TYPES = Object.freeze(['customer','parcel_active','parcel_archive','claim']);
 const DEVICE_KEY = 'lz35.deviceId';
 
 function deviceId() {
@@ -23,7 +23,7 @@ export function createSyncService({ supabase, store }) {
       entity_type: entityType,
       entity_id: item.id,
       payload: item,
-      modified_at: item.modifiedAt || item.statusUpdatedAt || item.archivedAt || modifiedAt,
+      modified_at: item.modifiedAt || item.updatedAt || item.statusUpdatedAt || item.archivedAt || modifiedAt,
       deleted_at: null,
       device_id: sourceDevice,
     });
@@ -31,17 +31,12 @@ export function createSyncService({ supabase, store }) {
       ...state.customers.map((item) => row('customer', item)),
       ...state.parcels.map((item) => row('parcel_active', item)),
       ...state.archive.map((item) => row('parcel_archive', item)),
+      ...(state.claims || []).map((item) => row('claim', item)),
     ];
     store.setState({ sync: { status: 'syncing', conflict: false } });
     if (rows.length) {
-      const { data, error } = await client.rpc('apply_sync_changes', {
-        p_workspace_id: state.workspace.id,
-        p_changes: rows,
-      });
-      if (error) {
-        store.setState({ sync: { status: 'error', conflict: false } });
-        throw error;
-      }
+      const { data, error } = await client.rpc('apply_sync_changes', { p_workspace_id: state.workspace.id, p_changes: rows });
+      if (error) { store.setState({ sync: { status: 'error', conflict: false } }); throw error; }
       const trackingRows = [
         ...state.parcels.map((item) => ({ item, archived: false })),
         ...state.archive.map((item) => ({ item, archived: true })),
@@ -55,10 +50,7 @@ export function createSyncService({ supabase, store }) {
       }));
       if (trackingRows.length) {
         const { error: trackingError } = await client.from('public_tracking_v35').upsert(trackingRows, { onConflict: 'tracking_token' });
-        if (trackingError) {
-          store.setState({ sync: { status: 'error', conflict: false } });
-          throw trackingError;
-        }
+        if (trackingError) { store.setState({ sync: { status: 'error', conflict: false } }); throw trackingError; }
       }
       store.setState({ sync: { status: 'synced', conflict: false } });
       return { status: 'synced', records: Number(data ?? rows.length), tracking: trackingRows.length };
@@ -80,19 +72,18 @@ export function createSyncService({ supabase, store }) {
       .in('entity_type', ENTITY_TYPES)
       .is('deleted_at', null)
       .order('modified_at', { ascending: true });
-    if (error) {
-      store.setState({ sync: { status: 'error', conflict: false } });
-      throw error;
-    }
+    if (error) { store.setState({ sync: { status: 'error', conflict: false } }); throw error; }
     const customers = [];
     const parcels = [];
     const archive = [];
+    const claims = [];
     for (const cloudRow of data || []) {
       if (cloudRow.entity_type === 'customer') customers.push(cloudRow.payload);
       if (cloudRow.entity_type === 'parcel_active') parcels.push(cloudRow.payload);
       if (cloudRow.entity_type === 'parcel_archive') archive.push(cloudRow.payload);
+      if (cloudRow.entity_type === 'claim') claims.push(cloudRow.payload);
     }
-    store.setState({ customers, parcels, archive, sync: { status: 'synced', conflict: false } });
+    store.setState({ customers, parcels, archive, claims, sync: { status: 'synced', conflict: false } });
     return { status: 'synced', records: (data || []).length };
   }
 
