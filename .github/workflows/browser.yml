@@ -31,3 +31,5 @@ jobs:
           sleep 2
       - name: Run repeated desktop and phone flows
         run: node tests/browser.mjs
+      - name: Run cloud tracking and offline PWA acceptance
+        run: node tests/browser-integration.mjs
