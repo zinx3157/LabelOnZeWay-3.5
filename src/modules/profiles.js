@@ -8,14 +8,15 @@ function profileKey(workspaceId, profileId) {
 function readProfile(workspaceId, profileId) {
   try {
     const parsed = JSON.parse(localStorage.getItem(profileKey(workspaceId, profileId)) || 'null');
-    if (!parsed) return { customers: [], parcels: [], archive: [] };
+    if (!parsed) return { customers: [], parcels: [], archive: [], claims: [] };
     return {
       customers: Array.isArray(parsed.customers) ? parsed.customers : [],
       parcels: Array.isArray(parsed.parcels) ? parsed.parcels : [],
       archive: Array.isArray(parsed.archive) ? parsed.archive : [],
+      claims: Array.isArray(parsed.claims) ? parsed.claims : [],
     };
   } catch {
-    return { customers: [], parcels: [], archive: [] };
+    return { customers: [], parcels: [], archive: [], claims: [] };
   }
 }
 
@@ -24,6 +25,7 @@ function writeProfile(workspaceId, profileId, state) {
     customers: state.customers || [],
     parcels: state.parcels || [],
     archive: state.archive || [],
+    claims: state.claims || [],
     savedAt: new Date().toISOString(),
   }));
 }
@@ -60,6 +62,7 @@ export function createProfilesModule({ store }) {
           customers: target.customers,
           parcels: target.parcels,
           archive: target.archive,
+          claims: target.claims,
           sync: { status: current.session ? 'ready' : 'local-only', conflict: false },
         });
         status.textContent = `Profile ${id} selected. Local data isolated from ${currentId}.`;
