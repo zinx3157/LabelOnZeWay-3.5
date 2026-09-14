@@ -1,0 +1,60 @@
+.approved-label-preview { width: min(100%,430px); padding: 1rem; gap: .8rem; border-radius: 20px; background: #f4f4ef; color: #080b0d; box-shadow: 0 18px 46px rgba(0,0,0,.28); font-family: Arial, Helvetica, sans-serif; }
+.approved-label-preview * { color: inherit; }
+.thermal-label-header { display: flex; align-items: flex-start; justify-content: space-between; gap: .8rem; padding-bottom: .7rem; border-bottom: 2px solid #0b0d0e; }
+.thermal-brand { display: flex; align-items: center; gap: .65rem; min-width: 0; }
+.thermal-logo { width: 48px; height: 48px; border: 3px solid #0b0d0e; border-radius: 8px; display: grid; place-items: center; font-size: 1.1rem; font-weight: 900; letter-spacing: -.05em; transform: rotate(-4deg); }
+.thermal-brand-copy { display: grid; line-height: 1.05; }
+.thermal-brand-copy strong { font-size: clamp(1.25rem,4vw,1.8rem); letter-spacing: -.04em; }
+.thermal-brand-copy span { font-size: .72rem; margin-top: .22rem; }
+.thermal-stamp { display: grid; justify-items: end; font-size: .72rem; white-space: nowrap; }
+.thermal-stamp strong { font-size: 1rem; }
+.thermal-pick-row { display: grid; grid-template-columns: minmax(0,1fr) 70px 92px; gap: .55rem; align-items: stretch; }
+.thermal-pick { min-width: 0; display: grid; align-content: center; padding: .62rem .72rem; border-radius: 10px; background: #07090a; color: #fff; }
+.thermal-pick span,.thermal-qty span { font-size: .68rem; font-weight: 800; }
+.thermal-pick strong { font-size: clamp(1.7rem,7vw,2.55rem); line-height: 1; letter-spacing: -.04em; overflow-wrap: anywhere; }
+.thermal-qty { display: grid; place-items: center; align-content: center; border: 2px solid #0b0d0e; border-radius: 10px; }
+.thermal-qty strong { font-size: 2.25rem; line-height: 1; }
+.thermal-qr { display: grid; gap: .28rem; justify-items: center; align-content: center; }
+.thermal-qr-grid { width: 78px; height: 78px; display: grid; grid-template-columns: repeat(7,1fr); gap: 1px; padding: 4px; border: 2px solid #0b0d0e; background: #fff; }
+.thermal-qr-grid i { display: block; background: transparent; }
+.thermal-qr-grid i.is-dark { background: #07090a; }
+.thermal-qr span { font-size: .55rem; font-weight: 900; letter-spacing: .04em; }
+.thermal-recipient { display: grid; gap: .22rem; padding: .1rem 0 .7rem; border-bottom: 2px dashed #151819; }
+.thermal-kicker { font-size: .68rem; font-weight: 900; letter-spacing: .08em; }
+.thermal-recipient-name { font-size: clamp(1.3rem,5vw,1.85rem); line-height: 1.08; }
+.thermal-recipient-line { font-size: 1rem; font-weight: 700; line-height: 1.28; overflow-wrap: anywhere; }
+.thermal-collect { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: stretch; border-radius: 12px; background: #e4e4df; overflow: hidden; }
+.thermal-collect-main { display: grid; align-content: center; padding: .7rem .85rem; }
+.thermal-collect-main span { font-size: .75rem; font-weight: 900; }
+.thermal-collect-main strong { font-size: clamp(2rem,8vw,3rem); line-height: 1; letter-spacing: -.04em; }
+.thermal-collect-meta { min-width: 94px; display: grid; place-items: center; align-content: center; gap: .1rem; padding: .65rem; border-left: 2px solid #171a1b; text-align: center; }
+.thermal-collect-meta span,.thermal-collect-meta small { font-size: .65rem; }
+.thermal-collect-meta strong { font-size: .9rem; }
+.thermal-delivery { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .6rem; padding: .65rem 0; border-top: 2px solid #0b0d0e; border-bottom: 2px solid #0b0d0e; }
+.thermal-delivery span { font-size: .68rem; font-weight: 800; }
+.thermal-delivery strong { font-size: 1rem; }
+.thermal-notes { padding: .55rem .65rem; border: 1px dashed #35393a; border-radius: 8px; font-size: .78rem; line-height: 1.35; }
+.thermal-footer { display: grid; justify-items: center; gap: .3rem; text-align: center; }
+.thermal-footer strong { font-size: .78rem; font-style: italic; }
+.thermal-footer small { font-size: .55rem; letter-spacing: .08em; }
+
+@media (max-width: 520px) {
+  .approved-label-preview { width: 100%; padding: .8rem; border-radius: 14px; }
+  .thermal-label-header { gap: .55rem; }
+  .thermal-logo { width: 40px; height: 40px; font-size: .9rem; }
+  .thermal-brand-copy strong { font-size: 1.2rem; }
+  .thermal-brand-copy span { font-size: .62rem; }
+  .thermal-stamp { font-size: .62rem; }
+  .thermal-pick-row { grid-template-columns: minmax(0,1fr) 58px; }
+  .thermal-qr { grid-column: 1 / -1; grid-template-columns: auto auto; justify-content: center; align-items: center; gap: .6rem; }
+  .thermal-qr-grid { width: 62px; height: 62px; }
+  .thermal-pick strong { font-size: 1.75rem; }
+  .thermal-qty strong { font-size: 1.75rem; }
+  .thermal-recipient-name { font-size: 1.35rem; }
+  .thermal-recipient-line { font-size: .92rem; }
+  .thermal-collect { grid-template-columns: 1fr; }
+  .thermal-collect-meta { border-left: 0; border-top: 1px solid #171a1b; grid-template-columns: auto auto auto; min-width: 0; }
+  .thermal-collect-main strong { font-size: 2.25rem; }
+  .thermal-delivery { grid-template-columns: 1fr auto; }
+  .thermal-delivery span:last-child { grid-column: 1 / -1; }
+}
