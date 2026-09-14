@@ -1,4 +1,4 @@
-const ENTITY_TYPES = Object.freeze(['customer','parcel_active']);
+const ENTITY_TYPES = Object.freeze(['customer','parcel_active','parcel_archive']);
 const DEVICE_KEY = 'lz35.deviceId';
 
 function deviceId() {
@@ -23,13 +23,14 @@ export function createSyncService({ supabase, store }) {
       entity_type: entityType,
       entity_id: item.id,
       payload: item,
-      modified_at: modifiedAt,
+      modified_at: item.modifiedAt || item.statusUpdatedAt || item.archivedAt || modifiedAt,
       deleted_at: null,
       device_id: sourceDevice,
     });
     const rows = [
       ...state.customers.map((item) => row('customer', item)),
       ...state.parcels.map((item) => row('parcel_active', item)),
+      ...state.archive.map((item) => row('parcel_archive', item)),
     ];
     store.setState({ sync: { status: 'syncing', conflict: false } });
     if (!rows.length) {
@@ -67,11 +68,13 @@ export function createSyncService({ supabase, store }) {
     }
     const customers = [];
     const parcels = [];
+    const archive = [];
     for (const cloudRow of data || []) {
       if (cloudRow.entity_type === 'customer') customers.push(cloudRow.payload);
       if (cloudRow.entity_type === 'parcel_active') parcels.push(cloudRow.payload);
+      if (cloudRow.entity_type === 'parcel_archive') archive.push(cloudRow.payload);
     }
-    store.setState({ customers, parcels, sync: { status: 'synced', conflict: false } });
+    store.setState({ customers, parcels, archive, sync: { status: 'synced', conflict: false } });
     return { status: 'synced', records: (data || []).length };
   }
 
