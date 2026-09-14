@@ -106,6 +106,25 @@ export function createAuditService({ supabase, store, deviceId }) {
     return event.id;
   }
 
+  async function list({ limit = 200 } = {}) {
+    const state = store.getState();
+    const queued = readQueue().map((item) => ({ ...item, pending: true }));
+    if (testMode || !state.session || !state.workspace?.id || !navigator.onLine) return queued.slice(-limit).reverse();
+    try {
+      await flush();
+      const client = await supabase.connect();
+      const { data, error } = await client.from('app_action_log_v35')
+        .select('id,profile_id,device_id,platform,app_version,action,target_type,target_id,route,metadata,occurred_at,server_received_at')
+        .eq('workspace_id', state.workspace.id)
+        .order('occurred_at', { ascending: false })
+        .limit(Math.max(1, Math.min(1000, Number(limit) || 200)));
+      if (error) throw error;
+      return data || [];
+    } catch {
+      return queued.slice(-limit).reverse();
+    }
+  }
+
   function observeState(state) {
     if (!previousState) { previousState = state; return; }
     if (state.route !== previousState.route) record('route.change', { from: previousState.route, to: state.route });
@@ -143,5 +162,5 @@ export function createAuditService({ supabase, store, deviceId }) {
     }, true);
   }
 
-  return { record, flush, observeState, installUiCapture, platform: detectPlatform, queued: () => readQueue().length };
+  return { record, flush, list, observeState, installUiCapture, platform: detectPlatform, queued: () => readQueue().length };
 }
