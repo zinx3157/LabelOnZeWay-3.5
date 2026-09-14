@@ -33,3 +33,5 @@ jobs:
         run: node tests/browser.mjs
       - name: Run cloud tracking and offline PWA acceptance
         run: node tests/browser-integration.mjs
+      - name: Run financial and claims parity acceptance
+        run: node tests/browser-parity.mjs
