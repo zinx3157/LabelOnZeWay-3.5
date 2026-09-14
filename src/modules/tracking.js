@@ -34,6 +34,7 @@ function trackingCard(parcel, { readOnly = false, services, store } = {}) {
   const wa = action('WhatsApp');
   const sms = action('SMS');
   const remind = action('Reminder');
+  const share = action('Share PDF + link');
   const copyLink = action('Copy tracking link');
   const notify = (channel, kind) => {
     try {
@@ -46,6 +47,14 @@ function trackingCard(parcel, { readOnly = false, services, store } = {}) {
   wa.addEventListener('click', () => notify('whatsapp', 'status'));
   sms.addEventListener('click', () => notify('sms', 'status'));
   remind.addEventListener('click', () => notify('whatsapp', 'reminder'));
+  share.addEventListener('click', async () => {
+    try {
+      const result = await services.share.shareParcel(parcel, store.getState().workspace?.name || 'LabelOnZeWay');
+      store.setState({ ui: { ...store.getState().ui, notice: result.mode === 'native' ? 'PDF and tracking link shared.' : `PDF downloaded; tracking link: ${result.secureLink}` } });
+    } catch (error) {
+      if (error?.name !== 'AbortError') store.setState({ ui: { ...store.getState().ui, notice: error.message } });
+    }
+  });
   copyLink.addEventListener('click', async () => {
     const url = publicTrackingUrl(parcel.trackingToken);
     try {
@@ -55,7 +64,7 @@ function trackingCard(parcel, { readOnly = false, services, store } = {}) {
       store.setState({ ui: { ...store.getState().ui, notice: url } });
     }
   });
-  actions.append(wa, sms, remind, copyLink);
+  actions.append(wa, sms, remind, share, copyLink);
   card.append(actions);
   return card;
 }
