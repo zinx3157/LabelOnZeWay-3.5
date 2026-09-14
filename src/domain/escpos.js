@@ -71,11 +71,8 @@ function qrCommands(data) {
   const body = encodeText(compactQrData(data));
   const storeLength = body.length + 3;
   return concat(
-    // QR Model 2.
     new Uint8Array([0x1d,0x28,0x6b,0x04,0x00,0x31,0x41,0x32,0x00]),
-    // Module size 4: cleaner, less dominant on 72 mm thermal stock.
     new Uint8Array([0x1d,0x28,0x6b,0x03,0x00,0x31,0x43,0x04]),
-    // Error correction M: reliable without making the symbol unnecessarily dense.
     new Uint8Array([0x1d,0x28,0x6b,0x03,0x00,0x31,0x45,0x31]),
     new Uint8Array([0x1d,0x28,0x6b,storeLength & 0xff,(storeLength >> 8) & 0xff,0x31,0x50,0x30]), body,
     new Uint8Array([0x1d,0x28,0x6b,0x03,0x00,0x31,0x51,0x30]),
@@ -112,33 +109,28 @@ export function labelEscPos(parcel, options = {}) {
 
   const parts = [CMD.init, CMD.left, CMD.normal];
 
-  // Header mirrors the browser preview: brand left, date/time right.
-  parts.push(CMD.boldOn, line(leftRight('LABELONZEWAY', stamp.date)), CMD.boldOff);
+  // Header keeps only creation time; the delivery date appears once in the delivery block below.
+  parts.push(CMD.boldOn, line('LABELONZEWAY'), CMD.boldOff);
   parts.push(line(leftRight('Ship Smarter. Deliver Further.', stamp.time)), line(divider));
 
-  // Pick + quantity block kept on the same visual row.
   parts.push(CMD.boldOn, line(leftRight('PICK', 'QTY')));
   parts.push(CMD.double, line(leftRight(parcel.pickId, String(parcel.qty), 21)), CMD.normal, CMD.boldOff);
   parts.push(line(divider));
 
-  // Compact tracking QR with breathing room so it scans cleanly and does not dominate the label.
   parts.push(CMD.center, line(''), qrCommands(qrData), line(''));
   parts.push(CMD.boldOn, line('SCAN POUR SUIVRE'), CMD.boldOff);
   parts.push(line(clip(parcel.pickId, 24)), CMD.left, line(divider));
 
-  // Recipient hierarchy.
   parts.push(CMD.boldOn, line('DESTINATAIRE'), CMD.doubleWidth, line(clip(parcel.customer?.name || '', 21)), CMD.normal, CMD.boldOff);
   if (parcel.customer?.phone) parts.push(CMD.boldOn, line(`TEL  ${parcel.customer.phone}`), CMD.boldOff);
   for (const addressLine of addressLines) parts.push(line(addressLine));
   parts.push(line(divider));
 
-  // Collect block with strong visual emphasis.
   parts.push(CMD.center, CMD.boldOn, line('A COLLECTER'), CMD.double, line(`${collect} Ar`), CMD.normal, CMD.boldOff);
   parts.push(line(`Mode ${paymentMode}`));
   if (Number(parcel.deliveryCharge || 0) > 0) parts.push(line(`Livraison ${delivery} Ar`));
   parts.push(CMD.left, line(divider));
 
-  // Delivery block.
   parts.push(CMD.boldOn, line(leftRight('LIVRAISON PREVUE', nextDay(created))), CMD.boldOff);
   parts.push(line(leftRight('Cree', stamp.time)), line(divider));
 
