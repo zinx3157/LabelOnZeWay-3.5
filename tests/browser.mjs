@@ -56,11 +56,37 @@ try {
     assert.match(await page.locator('body').innerText(), /UAT Customer/);
     assert.equal(await page.locator('body script').count(), 1, 'Only the application module script should exist');
 
-    const checkbox = page.locator('tbody input[type="checkbox"]').first();
-    await checkbox.check();
-    await page.locator('select.select').selectOption('delivered');
-    await page.getByRole('button', { name: 'Update selected' }).click();
-    assert.match(await page.locator('body').innerText(), /delivered/i);
+    const originalIdentity = await page.evaluate(() => {
+      const state = JSON.parse(localStorage.getItem('labelonzeway.3.5.state.v1'));
+      return { id: state.parcels[0].id, pickId: state.parcels[0].pickId, trackingToken: state.parcels[0].trackingToken };
+    });
+
+    await page.getByRole('button', { name: /Edit / }).first().click();
+    assert.match(await page.locator('h1').innerText(), /Edit Label/);
+    await page.locator('input[name="name"]').fill('UAT Customer Edited');
+    await page.getByRole('button', { name: 'Continue to parcel' }).click();
+    await page.locator('input[name="qty"]').fill('4');
+    await page.locator('input[name="unitPrice"]').fill('10000');
+    await page.getByRole('button', { name: 'Review label' }).click();
+    await page.getByRole('button', { name: 'Update label' }).click();
+    await page.locator('table').waitFor();
+    const editedIdentity = await page.evaluate(() => {
+      const state = JSON.parse(localStorage.getItem('labelonzeway.3.5.state.v1'));
+      return { count: state.parcels.length, id: state.parcels[0].id, pickId: state.parcels[0].pickId, trackingToken: state.parcels[0].trackingToken, collect: state.parcels[0].collect };
+    });
+    assert.equal(editedIdentity.count, 1, `${viewport.name} editing must not duplicate parcel`);
+    assert.equal(editedIdentity.id, originalIdentity.id, `${viewport.name} edit must preserve parcel id`);
+    assert.equal(editedIdentity.pickId, originalIdentity.pickId, `${viewport.name} edit must preserve Pick ID`);
+    assert.equal(editedIdentity.trackingToken, originalIdentity.trackingToken, `${viewport.name} edit must preserve tracking token`);
+    assert.equal(editedIdentity.collect, 40000, `${viewport.name} edited Collect must recalculate`);
+
+    for (const lifecycleStatus of ['dispatch','in-transit','delivery','exception','delivered']) {
+      const checkbox = page.locator('tbody input[type="checkbox"]').first();
+      await checkbox.check();
+      await page.locator('select.select').selectOption(lifecycleStatus);
+      await page.getByRole('button', { name: 'Update selected' }).click();
+      assert.match(await page.locator('tbody').innerText(), new RegExp(lifecycleStatus.replace('-', '[ -]?'), 'i'));
+    }
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.locator('table').waitFor();
@@ -69,9 +95,22 @@ try {
     await page.goto(`${BASE}#/customers`, { waitUntil: 'domcontentloaded' });
     assert.match(await page.locator('body').innerText(), /Previous shipment:/);
     await page.getByRole('button', { name: 'Edit' }).first().click();
-    await page.locator('input[name="customerEditName"]').fill('UAT Customer Edited');
+    await page.locator('input[name="customerEditName"]').fill('UAT Customer Maintained');
     await page.getByRole('button', { name: 'Save customer' }).click();
-    assert.match(await page.locator('body').innerText(), /UAT Customer Edited/);
+    assert.match(await page.locator('body').innerText(), /UAT Customer Maintained/);
+
+    await page.goto(`${BASE}#/tracking`, { waitUntil: 'domcontentloaded' });
+    await page.locator('input[name="trackingSearch"]').fill('NOT-A-REAL-ID');
+    assert.match(await page.locator('body').innerText(), /Tracking ID not found/);
+    await page.locator('input[name="trackingSearch"]').fill(originalIdentity.trackingToken);
+    assert.match(await page.locator('body').innerText(), new RegExp(originalIdentity.pickId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+
+    const publicBase = new URL(BASE);
+    publicBase.searchParams.set('track', originalIdentity.trackingToken);
+    await page.goto(`${publicBase.toString()}#/tracking`, { waitUntil: 'domcontentloaded' });
+    assert.match(await page.locator('body').innerText(), /Shipment Tracking/);
+    assert.match(await page.locator('body').innerText(), /delivered/i);
+    assert.equal(await page.getByRole('button', { name: 'WhatsApp' }).count(), 0, 'Public tracking must be read-only');
 
     await page.goto(`${BASE}#/archive`, { waitUntil: 'domcontentloaded' });
     await page.getByRole('checkbox', { name: /Archive / }).first().check();
@@ -79,13 +118,46 @@ try {
     assert.match(await page.locator('.archive-list').innerText(), /UAT Customer/);
     await page.locator('input[name="archiveSearch"]').fill('UAT Customer');
     assert.match(await page.locator('.archive-list').innerText(), /UAT Customer/);
+
+    await page.goto(`${publicBase.toString()}#/tracking`, { waitUntil: 'domcontentloaded' });
+    assert.match(await page.locator('body').innerText(), /Archived shipment/);
+    assert.match(await page.locator('body').innerText(), /delivered/i);
+
+    await page.goto(`${BASE}#/archive`, { waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: 'Restore' }).first().click();
     assert.match(await page.locator('body').innerText(), /Archive is empty/);
 
     await page.goto(`${BASE}#/reconciliation`, { waitUntil: 'domcontentloaded' });
     await page.locator('.metric-grid').waitFor();
     const reconciliation = await page.locator('.metric-grid').innerText();
-    assert.match(reconciliation, /37\s?500|37500/);
+    assert.match(reconciliation, /40\s?000|40000/);
+
+    const snapshot = await page.evaluate(() => JSON.parse(localStorage.getItem('labelonzeway.3.5.state.v1')));
+    const restoreSnapshot = {
+      version: '3.5',
+      customers: snapshot.customers,
+      parcels: snapshot.parcels.map((item) => ({ ...item, customer: { ...item.customer, name: 'Restored Customer' } })),
+      archive: snapshot.archive,
+      workspace: snapshot.workspace,
+    };
+    await page.goto(`${BASE}#/reports`, { waitUntil: 'domcontentloaded' });
+    await page.locator('input[type="file"]').setInputFiles({ name: 'uat-backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(restoreSnapshot)) });
+    assert.match(await page.locator('body').innerText(), /Backup restored:/);
+    const restored = await page.evaluate(() => JSON.parse(localStorage.getItem('labelonzeway.3.5.state.v1')));
+    assert.equal(restored.parcels.length, restoreSnapshot.parcels.length, `${viewport.name} restore parcel parity`);
+    assert.equal(restored.parcels[0].collect, 40000, `${viewport.name} restore financial parity`);
+
+    await page.evaluate(() => {
+      const key = 'labelonzeway.3.5.state.v1';
+      const state = JSON.parse(localStorage.getItem(key));
+      state.workspace = { id: 'uat-workspace', name: 'UAT Company', profileId: 'ps_default' };
+      localStorage.setItem(key, JSON.stringify(state));
+    });
+    await page.goto(`${BASE}#/profiles`, { waitUntil: 'domcontentloaded' });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.locator('input[name="profileId"]').fill('ops_uat');
+    await page.getByRole('button', { name: 'Use profile' }).click();
+    assert.match(await page.locator('.topbar').innerText(), /UAT Company \/ ops_uat/);
 
     for (let cycle = 0; cycle < 20; cycle += 1) {
       await page.goto(`${BASE}#/manifest`, { waitUntil: 'domcontentloaded' });
@@ -97,7 +169,7 @@ try {
     }
 
     await page.goto(`${BASE}#/customers`, { waitUntil: 'domcontentloaded' });
-    await page.getByRole('checkbox', { name: /Select UAT Customer Edited/ }).check();
+    await page.getByRole('checkbox', { name: /Select UAT Customer Maintained/ }).check();
     await page.getByRole('button', { name: 'Delete selected' }).click();
     assert.match(await page.locator('body').innerText(), /No saved customers yet/);
 
