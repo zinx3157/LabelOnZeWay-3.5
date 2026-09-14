@@ -12,10 +12,22 @@ function bridgeConfig() {
   };
 }
 
+async function readJson(response) {
+  return response.json().catch(() => ({}));
+}
+
 async function bridgeHealth(config) {
-  const response = await fetch(`${config.bridgeUrl}/api/health`, { method: 'GET' });
-  if (!response.ok) throw new Error(`Bridge health HTTP ${response.status}`);
-  return response.json();
+  let lastError = null;
+  for (const path of ['/health', '/api/health']) {
+    try {
+      const response = await fetch(`${config.bridgeUrl}${path}`, { method: 'GET' });
+      if (!response.ok) throw new Error(`Bridge health HTTP ${response.status}`);
+      return { endpoint: path, ...(await readJson(response)) };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error('Bridge is unavailable');
 }
 
 async function bridgePrint(config, job) {
@@ -26,10 +38,10 @@ async function bridgePrint(config, job) {
       printer_ip: job.printerIp || config.printerIp,
       printer_port: job.printerPort || config.printerPort,
       data: job.data,
-      labels: job.labels || 1,
+      labels: Math.max(1, Number(job.labels) || 1),
     }),
   });
-  const body = await response.json().catch(() => ({}));
+  const body = await readJson(response);
   if (!response.ok) throw new Error(body.error || `Bridge print HTTP ${response.status}`);
   return { adapter: 'bridge', ...body };
 }
@@ -74,8 +86,12 @@ export function createPrintService({ supabase, store }) {
     if (mode === 'cloud') return cloudPrint({ supabase, store }, job);
     const state = store.getState();
     if (state.session && state.workspace?.id) {
-      try { return await cloudPrint({ supabase, store }, job); } catch (cloudError) {
-        try { return await bridgePrint(bridgeConfig(), job); } catch (bridgeError) {
+      try {
+        return await cloudPrint({ supabase, store }, job);
+      } catch (cloudError) {
+        try {
+          return await bridgePrint(bridgeConfig(), job);
+        } catch (bridgeError) {
           throw new AggregateError([cloudError, bridgeError], 'Cloud and bridge printing both failed');
         }
       }
@@ -83,5 +99,18 @@ export function createPrintService({ supabase, store }) {
     return bridgePrint(bridgeConfig(), job);
   }
 
-  return { health, print, defaults: DEFAULTS };
+  async function printWithRetry(job, { mode = 'auto', attempts = 2 } = {}) {
+    const tries = Math.max(1, Number(attempts) || 1);
+    let lastError = null;
+    for (let index = 0; index < tries; index += 1) {
+      try {
+        return await print({ ...job, idempotencyKey: job.idempotencyKey || `${crypto.randomUUID()}-${Date.now()}` }, mode);
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError || new Error('Print failed');
+  }
+
+  return { health, print, printWithRetry, defaults: DEFAULTS };
 }
