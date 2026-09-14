@@ -31,6 +31,9 @@ function initials(name) {
 function makeText(tag, className, value) {
   const el = document.createElement(tag); el.className = className; el.textContent = value; return el;
 }
+function option(value, label) {
+  const el = document.createElement('option'); el.value = value; el.textContent = label; return el;
+}
 
 export function createCustomersModule({ store }) {
   let importMessage = '';
@@ -57,7 +60,7 @@ export function createCustomersModule({ store }) {
 
       const sortSelect = document.createElement('select');
       sortSelect.className = 'select customers-sort';
-      sortSelect.innerHTML = '<option value="name">Name A → Z</option><option value="area">Area A → Z</option><option value="recent">Recently added</option>';
+      sortSelect.append(option('name', 'Name A → Z'), option('area', 'Area A → Z'), option('recent', 'Recently added'));
       sortSelect.value = sort;
       sortSelect.addEventListener('change', () => { sort = sortSelect.value; renderList(); });
 
