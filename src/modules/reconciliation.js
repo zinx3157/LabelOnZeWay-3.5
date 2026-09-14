@@ -8,15 +8,19 @@ export function createReconciliationModule() {
       const totals = reconciliationTotals(state.parcels);
       const section = document.createElement('section');
       section.className = 'screen';
-      section.append(heading('Reconciliation', 'One financial model shared with the manifest.'));
+      section.append(heading('Reconciliation', 'Merchandise Collect and delivery revenue remain separate.'));
       const grid = document.createElement('div');
       grid.className = 'metric-grid';
       const metrics = [
         ['Parcels', totals.parcels],
         ['Quantity', totals.quantity],
-        ['Total Collect', `${formatAr(totals.collect)} Ar`],
+        ['Merchandise Collect', `${formatAr(totals.collect)} Ar`],
+        ['Delivery Revenue', `${formatAr(totals.deliveryRevenue)} Ar`],
+        ['Total Receivable', `${formatAr(totals.totalReceivable)} Ar`],
         ['Delivered Collect', `${formatAr(totals.deliveredCollect)} Ar`],
-        ['Outstanding', `${formatAr(totals.outstandingCollect)} Ar`],
+        ['Delivered Delivery', `${formatAr(totals.deliveredDeliveryRevenue)} Ar`],
+        ['Outstanding Collect', `${formatAr(totals.outstandingCollect)} Ar`],
+        ['Outstanding Delivery', `${formatAr(totals.outstandingDeliveryRevenue)} Ar`],
       ];
       for (const [label, value] of metrics) {
         const card = document.createElement('article');
