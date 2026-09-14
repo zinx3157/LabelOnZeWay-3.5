@@ -25,9 +25,9 @@ export function createShell({ state, navigate, content }) {
   const brand = document.createElement('div');
   brand.className = 'brand';
   const brandName = document.createElement('strong');
-  brandName.textContent = 'LabelOnZeWay';
+  brandName.textContent = state.workspace?.name || 'LabelOnZeWay';
   const brandVersion = document.createElement('span');
-  brandVersion.textContent = '3.5';
+  brandVersion.textContent = `3.5 · ${state.workspace?.profileId || 'ps_default'}`;
   brand.append(brandName, brandVersion);
 
   const primary = document.createElement('nav');
@@ -58,7 +58,10 @@ export function createShell({ state, navigate, content }) {
   separator.textContent = '•';
   const sync = document.createElement('span');
   sync.textContent = `Sync: ${state.sync.status}`;
-  status.append(dot, connectivity, separator, sync);
+  const profile = document.createElement('span');
+  profile.className = 'status-profile';
+  profile.textContent = `${state.workspace?.name || 'Local'} / ${state.workspace?.profileId || 'ps_default'}`;
+  status.append(dot, connectivity, separator, sync, separator.cloneNode(true), profile);
   header.append(status);
 
   const stage = document.createElement('main');
