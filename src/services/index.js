@@ -6,6 +6,7 @@ import { createSyncService } from './sync.js';
 import { createPrintService } from './print.js';
 import { createOcrService } from './ocr.js';
 import { createMessagingService } from './messaging.js';
+import { createShareService } from './share.js';
 
 export function createServices({ store }) {
   const storage = createStorageService();
@@ -16,6 +17,7 @@ export function createServices({ store }) {
   const print = createPrintService({ supabase, store });
   const ocr = createOcrService();
   const messaging = createMessagingService();
+  const share = createShareService();
 
   const lifecycle = {
     async start() {
@@ -38,5 +40,5 @@ export function createServices({ store }) {
     },
   };
 
-  return { lifecycle, storage, supabase, auth, workspace, sync, print, ocr, messaging };
+  return { lifecycle, storage, supabase, auth, workspace, sync, print, ocr, messaging, share };
 }
