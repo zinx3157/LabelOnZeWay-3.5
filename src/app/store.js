@@ -2,6 +2,7 @@ const initialState = Object.freeze({
   route: 'home',
   session: null,
   workspace: null,
+  profileSettings: { name: '', manifestEmail: '' },
   online: true,
   sync: { status: 'idle', conflict: false },
   ui: { modal: null, busy: false, notice: '' },
@@ -15,6 +16,7 @@ const initialState = Object.freeze({
 export function createStore(seed = {}) {
   let state = structuredClone({ ...initialState, ...seed });
   if (!Array.isArray(state.claims)) state.claims = [];
+  if (!state.profileSettings || typeof state.profileSettings !== 'object') state.profileSettings = { name: '', manifestEmail: '' };
   if (!state.labelDraft?.parcel) state.labelDraft = structuredClone(initialState.labelDraft);
   if (state.labelDraft.parcel.deliveryCharge == null) state.labelDraft.parcel.deliveryCharge = 0;
   const listeners = new Set();
