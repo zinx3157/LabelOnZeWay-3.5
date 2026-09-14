@@ -1,8 +1,9 @@
-const CACHE = 'labelonzeway-3.5-shell-v3';
+const CACHE = 'labelonzeway-3.5-shell-v4';
 const SHELL = [
   './',
   './index.html',
   './public/manifest.webmanifest',
+  './public/icon.svg',
   './public/sync-config.json',
   './src/main.js',
   './src/app/bootstrap.js',
