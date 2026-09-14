@@ -38,10 +38,28 @@ test('OCR classifies a product image without inventing customer data', () => {
   assert.equal(out.amount, 20000);
   assert.equal(out.item.brand, 'TOMMY HILFIGER');
   assert.equal(out.item.size, 'S');
-  assert.equal(out.item.note, 'TOMMY HILFIGER · Size S');
 });
 
 test('OCR requires price context instead of treating unrelated product numbers as money', () => {
   const out = extractContact('TOMMY HILFIGER\nSTYLE 998877\nSIZE M\nMADE IN SRI LANKA');
   assert.equal(out.amount, 0);
+});
+
+test('OCR aggressively rejects random garment and image noise', () => {
+  const out = extractContact('@@@ ///\nS/P\n100% COTTON\nWASH CARE\nMADE IN CHINA\nFACEBOOK INSTAGRAM\n998877\nTOMMY HILFIGER');
+  assert.equal(out.name, '');
+  assert.equal(out.phone, '');
+  assert.equal(out.address, '');
+  assert.equal(out.amount, 0);
+  assert.equal(out.item.note, '');
+  assert.equal(out.contactDetected, false);
+  assert.ok(out.diagnostics.noiseRejected >= 1);
+});
+
+test('OCR keeps explicit recipient while suppressing nearby unrelated text', () => {
+  const out = extractContact('PROMO NEW COLLECTION\nDestinataire: Hasina Rasoa\nTEL 038 25 743 45\nRue Andavamamba Antananarivo\nMADE IN SRI LANKA\nSTYLE 998877');
+  assert.equal(out.name, 'Hasina Rasoa');
+  assert.equal(out.phone, '0382574345');
+  assert.match(out.address, /Andavamamba Antananarivo/i);
+  assert.doesNotMatch(out.address, /SRI LANKA|998877/i);
 });
