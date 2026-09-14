@@ -11,11 +11,29 @@ export function updateParcelStatuses(parcels, ids, status) {
 export function reconciliationTotals(parcels) {
   return parcels.reduce((totals, parcel) => {
     const collect = asNumber(parcel.collect);
+    const deliveryCharge = asNumber(parcel.deliveryCharge);
     totals.parcels += 1;
     totals.quantity += asNumber(parcel.qty);
     totals.collect += collect;
-    if (parcel.status === 'delivered') totals.deliveredCollect += collect;
-    else totals.outstandingCollect += collect;
+    totals.deliveryRevenue += deliveryCharge;
+    totals.totalReceivable += collect + deliveryCharge;
+    if (parcel.status === 'delivered') {
+      totals.deliveredCollect += collect;
+      totals.deliveredDeliveryRevenue += deliveryCharge;
+    } else {
+      totals.outstandingCollect += collect;
+      totals.outstandingDeliveryRevenue += deliveryCharge;
+    }
     return totals;
-  }, { parcels: 0, quantity: 0, collect: 0, deliveredCollect: 0, outstandingCollect: 0 });
+  }, {
+    parcels: 0,
+    quantity: 0,
+    collect: 0,
+    deliveryRevenue: 0,
+    totalReceivable: 0,
+    deliveredCollect: 0,
+    deliveredDeliveryRevenue: 0,
+    outstandingCollect: 0,
+    outstandingDeliveryRevenue: 0,
+  });
 }
