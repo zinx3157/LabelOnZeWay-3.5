@@ -49,8 +49,48 @@ function trackingUrl(token) {
   return url.toString();
 }
 
+function hashSeed(value) {
+  let hash = 2166136261;
+  for (const char of String(value || 'LabelOnZeWay')) {
+    hash ^= char.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function finderDark(row, col, top, left) {
+  if (row < top || row > top + 6 || col < left || col > left + 6) return null;
+  const r = row - top;
+  const c = col - left;
+  const outer = r === 0 || r === 6 || c === 0 || c === 6;
+  const inner = r >= 2 && r <= 4 && c >= 2 && c <= 4;
+  return outer || inner;
+}
+
+function qrPreview(seedValue) {
+  const frame = el('div', 'thermal-qr-frame');
+  const grid = el('div', 'thermal-qr-grid');
+  let seed = hashSeed(seedValue);
+  for (let row = 0; row < 21; row += 1) {
+    for (let col = 0; col < 21; col += 1) {
+      let dark = finderDark(row, col, 0, 0);
+      if (dark === null) dark = finderDark(row, col, 0, 14);
+      if (dark === null) dark = finderDark(row, col, 14, 0);
+      if (dark === null && (row === 6 || col === 6)) dark = (row + col) % 2 === 0;
+      if (dark === null) {
+        seed = (Math.imul(seed ^ (row * 31 + col * 17 + 1), 1664525) + 1013904223) >>> 0;
+        dark = ((seed >>> 28) & 1) === 1;
+      }
+      grid.append(el('i', dark ? 'is-dark' : ''));
+    }
+  }
+  frame.append(grid);
+  return frame;
+}
+
 function labelPreview(draft, state) {
   const now = new Date();
+  const pickId = previewPickId(state, draft);
   const preview = el('article', 'label-preview approved-label-preview');
 
   const header = el('div', 'thermal-label-header');
@@ -65,31 +105,25 @@ function labelPreview(draft, state) {
 
   const pickRow = el('div', 'thermal-pick-row');
   const pick = el('div', 'thermal-pick');
-  pick.append(el('span', '', 'PICK'), el('strong', '', previewPickId(state, draft)));
+  pick.append(el('span', '', 'PICK'), el('strong', '', pickId));
   const qty = el('div', 'thermal-qty');
   qty.append(el('span', '', 'QTY'), el('strong', '', String(draft.parcel.qty)));
   const qr = el('div', 'thermal-qr');
-  const qrGrid = el('div', 'thermal-qr-grid');
-  for (let i = 0; i < 49; i += 1) {
-    const cell = el('i', ((i * 7 + i * i + previewPickId(state, draft).length) % 5) < 2 ? 'is-dark' : '');
-    qrGrid.append(cell);
-  }
-  qr.append(qrGrid, el('span', '', 'SCAN POUR SUIVRE'));
+  qr.append(qrPreview(pickId), el('span', '', 'SCAN POUR SUIVRE'), el('small', '', pickId));
   pickRow.append(pick, qty, qr);
 
   const recipient = el('div', 'thermal-recipient');
   recipient.append(el('span', 'thermal-kicker', 'DESTINATAIRE'));
-  const name = el('strong', 'thermal-recipient-name', draft.customer.name || 'Customer');
-  const phone = el('div', 'thermal-recipient-line', draft.customer.phone || 'No phone');
-  const address = el('div', 'thermal-recipient-line', draft.customer.address || 'No address');
-  recipient.append(name, phone, address);
+  recipient.append(el('strong', 'thermal-recipient-name', draft.customer.name || 'Customer'));
+  recipient.append(el('div', 'thermal-recipient-line thermal-recipient-phone', `TEL  ${draft.customer.phone || 'No phone'}`));
+  recipient.append(el('div', 'thermal-recipient-line', draft.customer.address || 'No address'));
 
   const collect = el('div', 'thermal-collect');
   const collectMain = el('div', 'thermal-collect-main');
   collectMain.append(el('span', '', 'À COLLECTER'), el('strong', '', `${formatAr(draft.parcel.collect)} Ar`));
   const collectMeta = el('div', 'thermal-collect-meta');
-  collectMeta.append(el('span', '', 'Mode'), el('strong', '', 'Espèces'));
-  if (Number(draft.parcel.deliveryCharge || 0) > 0) collectMeta.append(el('small', '', `Livraison ${formatAr(draft.parcel.deliveryCharge)} Ar`));
+  collectMeta.append(el('span', '', 'MODE'), el('strong', '', 'Espèces'));
+  collectMeta.append(el('small', '', `Livraison ${formatAr(Math.max(0, Number(draft.parcel.deliveryCharge) || 0))} Ar`));
   collect.append(collectMain, collectMeta);
 
   const delivery = el('div', 'thermal-delivery');
