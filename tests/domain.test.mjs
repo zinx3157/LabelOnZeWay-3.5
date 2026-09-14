@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { calculateCollect } from '../src/domain/money.js';
 import { makePickId } from '../src/domain/ids.js';
 import { PARCEL_STATUSES, reconciliationTotals, updateParcelStatuses } from '../src/domain/manifest.js';
-import { bytesToBase64, manifestEscPos } from '../src/domain/escpos.js';
+import { bytesToBase64, labelEscPos, manifestEscPos } from '../src/domain/escpos.js';
 import { labelPdfBytes } from '../src/domain/pdf.js';
 import { extractContact } from '../src/services/ocr.js';
 
@@ -67,6 +67,27 @@ test('Dependency-free label PDF is structurally valid', () => {
   assert.match(text, /xref/);
   assert.match(text, /PICK 130926-1/);
   assert.match(text, /%%EOF$/);
+});
+
+test('Approved 72mm label ESC/POS contains hierarchy, QR and cut command', () => {
+  const bytes = labelEscPos({
+    pickId: '140926-1',
+    trackingToken: 'trk_test',
+    customer: { name: 'Nadia Rapanarivo', phone: '034 14 183 34', address: 'Taxi Brousse Vatsi' },
+    qty: 1,
+    collect: 15000,
+    deliveryCharge: 1500,
+    createdAt: '2026-09-14T17:34:00+03:00',
+  }, { trackingUrl: 'https://example.com/?track=trk_test#/tracking' });
+  const text = new TextDecoder().decode(bytes);
+  assert.match(text, /LABELONZEWAY/);
+  assert.match(text, /PICK 140926-1/);
+  assert.match(text, /Nadia Rapanarivo/);
+  assert.match(text, /A COLLECTER/);
+  assert.match(text, /15 000 Ar/);
+  assert.match(text, /LIVRAISON PREVUE/);
+  assert.ok(bytes.some((value, index) => value === 0x1d && bytes[index + 1] === 0x28 && bytes[index + 2] === 0x6b), 'QR command must be present');
+  assert.deepEqual(Array.from(bytes.slice(-4)), [0x1d,0x56,0x42,0x00]);
 });
 
 test('72mm manifest ESC/POS contains rows and cut command', () => {
