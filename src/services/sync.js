@@ -9,6 +9,21 @@ function deviceId() {
   return value;
 }
 
+function timestamp(item) {
+  return item?.modifiedAt || item?.updatedAt || item?.statusUpdatedAt || item?.archivedAt || '';
+}
+
+function localIndex(state, profileId) {
+  const map = new Map();
+  const add = (type, item) => item?.id && map.set(`${type}:${item.id}`, { type, item, modifiedAt: timestamp(item) });
+  state.customers.forEach((item) => add('customer', item));
+  state.parcels.forEach((item) => add('parcel_active', item));
+  state.archive.forEach((item) => add('parcel_archive', item));
+  (state.claims || []).forEach((item) => add('claim', item));
+  add('profile_settings_v35', { id: profileId, ...(state.profileSettings || {}) });
+  return map;
+}
+
 export function createSyncService({ supabase, store }) {
   async function pushSnapshot() {
     const state = store.getState();
@@ -23,7 +38,7 @@ export function createSyncService({ supabase, store }) {
       entity_type: entityType,
       entity_id: item.id,
       payload: item,
-      modified_at: item.modifiedAt || item.updatedAt || item.statusUpdatedAt || item.archivedAt || modifiedAt,
+      modified_at: timestamp(item) || modifiedAt,
       deleted_at: null,
       device_id: sourceDevice,
     });
@@ -57,7 +72,7 @@ export function createSyncService({ supabase, store }) {
     return { status: 'synced', records: Number(data ?? rows.length), tracking: trackingRows.length };
   }
 
-  async function pullSnapshot() {
+  async function pullSnapshot({ force = false } = {}) {
     const state = store.getState();
     if (!state.session || !state.workspace?.id) return { status: 'local-only' };
     const client = await supabase.connect();
@@ -71,6 +86,21 @@ export function createSyncService({ supabase, store }) {
       .is('deleted_at', null)
       .order('modified_at', { ascending: true });
     if (error) { store.setState({ sync: { status: 'error', conflict: false } }); throw error; }
+
+    if (!force) {
+      const local = localIndex(state, profileId);
+      const sourceDevice = deviceId();
+      const conflicts = (data || []).filter((cloudRow) => {
+        const localRow = local.get(`${cloudRow.entity_type}:${cloudRow.entity_id}`);
+        if (!localRow?.modifiedAt || !cloudRow.modified_at || cloudRow.device_id === sourceDevice) return false;
+        return new Date(localRow.modifiedAt).getTime() > new Date(cloudRow.modified_at).getTime();
+      }).map((row) => ({ entityType: row.entity_type, entityId: row.entity_id }));
+      if (conflicts.length) {
+        store.setState({ sync: { status: 'conflict', conflict: true, conflicts } });
+        return { status: 'conflict', records: (data || []).length, conflicts };
+      }
+    }
+
     const customers = [];
     const parcels = [];
     const archive = [];
