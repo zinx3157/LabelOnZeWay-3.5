@@ -57,14 +57,13 @@ export function createReportsModule({ store }) {
       restoreInput.addEventListener('change', async () => {
         const file = restoreInput.files?.[0];
         if (!file) return;
+        restoreInput.value = '';
         try {
           const snapshot = validateBackup(JSON.parse(await file.text()));
           store.setState({ customers: snapshot.customers, parcels: snapshot.parcels, archive: snapshot.archive, workspace: snapshot.workspace || state.workspace });
           status.textContent = `Backup restored: ${snapshot.parcels.length} active parcels, ${snapshot.archive.length} archived.`;
         } catch (error) {
           status.textContent = `Restore rejected: ${error.message}`;
-        } finally {
-          restoreInput.value = '';
         }
       });
 
