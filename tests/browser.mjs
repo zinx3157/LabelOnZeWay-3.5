@@ -62,6 +62,26 @@ try {
     await page.getByRole('button', { name: 'Update selected' }).click();
     assert.match(await page.locator('body').innerText(), /delivered/i);
 
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.locator('table').waitFor();
+    assert.match(await page.locator('body').innerText(), /delivered/i, `${viewport.name} status must persist after reload`);
+
+    await page.goto(`${BASE}#/customers`, { waitUntil: 'domcontentloaded' });
+    assert.match(await page.locator('body').innerText(), /Previous shipment:/);
+    await page.getByRole('button', { name: 'Edit' }).first().click();
+    await page.locator('input[name="customerEditName"]').fill('UAT Customer Edited');
+    await page.getByRole('button', { name: 'Save customer' }).click();
+    assert.match(await page.locator('body').innerText(), /UAT Customer Edited/);
+
+    await page.goto(`${BASE}#/archive`, { waitUntil: 'domcontentloaded' });
+    await page.getByRole('checkbox', { name: /Archive / }).first().check();
+    await page.getByRole('button', { name: 'Archive selected' }).click();
+    assert.match(await page.locator('.archive-list').innerText(), /UAT Customer/);
+    await page.locator('input[name="archiveSearch"]').fill('UAT Customer');
+    assert.match(await page.locator('.archive-list').innerText(), /UAT Customer/);
+    await page.getByRole('button', { name: 'Restore' }).first().click();
+    assert.match(await page.locator('body').innerText(), /Archive is empty/);
+
     await page.goto(`${BASE}#/reconciliation`, { waitUntil: 'domcontentloaded' });
     await page.locator('.metric-grid').waitFor();
     const reconciliation = await page.locator('.metric-grid').innerText();
@@ -75,6 +95,11 @@ try {
       await page.goto(`${BASE}#/customers`, { waitUntil: 'domcontentloaded' });
       await page.locator('.screen').waitFor();
     }
+
+    await page.goto(`${BASE}#/customers`, { waitUntil: 'domcontentloaded' });
+    await page.getByRole('checkbox', { name: /Select UAT Customer Edited/ }).check();
+    await page.getByRole('button', { name: 'Delete selected' }).click();
+    assert.match(await page.locator('body').innerText(), /No saved customers yet/);
 
     const finalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
     assert.equal(finalOverflow, false, `${viewport.name} must not develop horizontal overflow after navigation loops`);
