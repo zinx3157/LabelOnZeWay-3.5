@@ -25,7 +25,12 @@ try {
   assert.match(await page.locator('.calculation').innerText(), /Collect:\s*10\s?000/i);
   assert.match(await page.locator('.calculation').innerText(), /Delivery:\s*1\s?500/i);
   await page.getByRole('button', { name: 'Review label' }).click();
-  assert.match(await page.locator('.label-preview').innerText(), /Delivery:\s*1\s?500/i);
+  const preview = await page.locator('.label-preview').innerText();
+  assert.match(preview, /PICK/i);
+  assert.match(preview, /Finance UAT Customer/);
+  assert.match(preview, /10\s?000\s*Ar/i);
+  assert.match(preview, /Livraison\s*1\s?500\s*Ar/i);
+  assert.match(preview, /SCAN POUR SUIVRE/i);
   await page.getByRole('button', { name: 'Save label' }).click();
   await page.locator('table').waitFor();
   assert.match(await page.locator('table').innerText(), /10\s?000/);
