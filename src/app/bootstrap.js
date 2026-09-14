@@ -20,8 +20,18 @@ export async function bootstrap(root) {
   };
 
   store.subscribe(render);
-  addEventListener('online', () => store.setState({ online: true }));
-  addEventListener('offline', () => store.setState({ online: false }));
+  services.audit.installUiCapture(document);
+  addEventListener('online', () => {
+    store.setState({ online: true });
+    services.audit.record('network.reconnected');
+    void services.audit.flush();
+  });
+  addEventListener('offline', () => {
+    store.setState({ online: false });
+    services.audit.record('network.disconnected');
+  });
+  addEventListener('error', (event) => services.audit.record('app.error', { message: String(event.message || 'unknown').slice(0, 160) }));
+  addEventListener('unhandledrejection', (event) => services.audit.record('app.unhandled_rejection', { message: String(event.reason?.message || event.reason || 'unknown').slice(0, 160) }));
 
   await services.lifecycle.start();
   router.start();
