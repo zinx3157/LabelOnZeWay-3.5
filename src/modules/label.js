@@ -1,5 +1,5 @@
 import { field, action } from '../components/form.js';
-import { heading, textStack } from '../components/view.js';
+import { heading } from '../components/view.js';
 import { makeId, makePickId } from '../domain/ids.js';
 import { calculateCollect, formatAr } from '../domain/money.js';
 import { makeTrackingToken } from '../domain/tracking.js';
@@ -16,30 +16,91 @@ function labelHeading(draft) {
   return heading(draft.editParcelId ? 'Edit Label' : 'New Label', 'Customer → Parcel → Review / Print', badge);
 }
 
-function labelPreview(draft) {
-  const preview = document.createElement('article');
-  preview.className = 'label-preview';
-  const brand = document.createElement('div');
-  brand.className = 'label-preview-brand';
-  brand.textContent = 'LabelOnZeWay';
-  const identity = textStack([
-    ['strong', draft.customer.name],
-    ['span', draft.customer.phone || ''],
-    ['span', draft.customer.address || ''],
-  ]);
-  const rule = document.createElement('hr');
-  const details = textStack([
-    ['span', `Qty: ${draft.parcel.qty}`],
-    ['span', `Unit: ${formatAr(draft.parcel.unitPrice)} Ar`],
-    ['b', `Collect: ${formatAr(draft.parcel.collect)} Ar`],
-    ['span', `Delivery: ${formatAr(draft.parcel.deliveryCharge || 0)} Ar`],
-  ]);
-  preview.append(brand, identity, rule, details);
-  if (draft.parcel.notes) {
-    const notes = document.createElement('small');
-    notes.textContent = draft.parcel.notes;
-    preview.append(notes);
+function el(tag, className, text = '') {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text) node.textContent = text;
+  return node;
+}
+
+function previewPickId(state, draft) {
+  if (draft.editParcelId) return state.parcels.find((item) => item.id === draft.editParcelId)?.pickId || makePickId(state.parcels);
+  return makePickId(state.parcels);
+}
+
+function previewDate(date = new Date()) {
+  return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
+}
+
+function previewTime(date = new Date()) {
+  return new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false }).format(date);
+}
+
+function tomorrow(date = new Date()) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + 1);
+  return previewDate(next);
+}
+
+function trackingUrl(token) {
+  const url = new URL(window.location.href);
+  url.search = `?track=${encodeURIComponent(token)}`;
+  url.hash = '#/tracking';
+  return url.toString();
+}
+
+function labelPreview(draft, state) {
+  const now = new Date();
+  const preview = el('article', 'label-preview approved-label-preview');
+
+  const header = el('div', 'thermal-label-header');
+  const brand = el('div', 'thermal-brand');
+  const logo = el('div', 'thermal-logo', 'LZ');
+  const brandCopy = el('div', 'thermal-brand-copy');
+  brandCopy.append(el('strong', '', 'LabelOnZeWay'), el('span', '', 'Ship Smarter. Deliver Further.'));
+  brand.append(logo, brandCopy);
+  const stamp = el('div', 'thermal-stamp');
+  stamp.append(el('span', '', previewDate(now)), el('strong', '', previewTime(now)));
+  header.append(brand, stamp);
+
+  const pickRow = el('div', 'thermal-pick-row');
+  const pick = el('div', 'thermal-pick');
+  pick.append(el('span', '', 'PICK'), el('strong', '', previewPickId(state, draft)));
+  const qty = el('div', 'thermal-qty');
+  qty.append(el('span', '', 'QTY'), el('strong', '', String(draft.parcel.qty)));
+  const qr = el('div', 'thermal-qr');
+  const qrGrid = el('div', 'thermal-qr-grid');
+  for (let i = 0; i < 49; i += 1) {
+    const cell = el('i', ((i * 7 + i * i + previewPickId(state, draft).length) % 5) < 2 ? 'is-dark' : '');
+    qrGrid.append(cell);
   }
+  qr.append(qrGrid, el('span', '', 'SCAN POUR SUIVRE'));
+  pickRow.append(pick, qty, qr);
+
+  const recipient = el('div', 'thermal-recipient');
+  recipient.append(el('span', 'thermal-kicker', 'DESTINATAIRE'));
+  const name = el('strong', 'thermal-recipient-name', draft.customer.name || 'Customer');
+  const phone = el('div', 'thermal-recipient-line', draft.customer.phone || 'No phone');
+  const address = el('div', 'thermal-recipient-line', draft.customer.address || 'No address');
+  recipient.append(name, phone, address);
+
+  const collect = el('div', 'thermal-collect');
+  const collectMain = el('div', 'thermal-collect-main');
+  collectMain.append(el('span', '', 'À COLLECTER'), el('strong', '', `${formatAr(draft.parcel.collect)} Ar`));
+  const collectMeta = el('div', 'thermal-collect-meta');
+  collectMeta.append(el('span', '', 'Mode'), el('strong', '', 'Espèces'));
+  if (Number(draft.parcel.deliveryCharge || 0) > 0) collectMeta.append(el('small', '', `Livraison ${formatAr(draft.parcel.deliveryCharge)} Ar`));
+  collect.append(collectMain, collectMeta);
+
+  const delivery = el('div', 'thermal-delivery');
+  delivery.append(el('span', '', 'LIVRAISON PRÉVUE'), el('strong', '', tomorrow(now)), el('span', '', `Créé ${previewTime(now)}`));
+
+  const footer = el('div', 'thermal-footer');
+  footer.append(el('strong', '', 'Misaotra betsaka ! Merci pour votre confiance !'), el('small', '', 'LABELONZEWAY | PEOPLE. PARCELS. PROGRESS.'));
+
+  preview.append(header, pickRow, recipient, collect, delivery);
+  if (draft.parcel.notes) preview.append(el('div', 'thermal-notes', draft.parcel.notes));
+  preview.append(footer);
   return preview;
 }
 
@@ -163,12 +224,12 @@ export function createLabelModule({ store, services }) {
       }
 
       if (draft.step === 3) {
-        const preview = labelPreview(draft);
+        const preview = labelPreview(draft, state);
         const actions = document.createElement('div');
         actions.className = 'button-row';
         const back = action('Edit parcel');
         const save = action(draft.editParcelId ? 'Update label' : 'Save label', 'primary');
-        const print = action('Print test');
+        const print = action('Print 72mm test');
         back.addEventListener('click', () => store.update((current) => ({ ...current, labelDraft: { ...current.labelDraft, step: 2 } })));
         const materialize = (current) => {
           const existing = current.labelDraft.editParcelId ? current.parcels.find((item) => item.id === current.labelDraft.editParcelId) : null;
@@ -188,7 +249,7 @@ export function createLabelModule({ store, services }) {
         print.addEventListener('click', async () => {
           const parcel = materialize(store.getState());
           try {
-            const result = await services.print.printWithRetry({ data: bytesToBase64(labelEscPos(parcel)), labels: 1 }, { attempts: 2 });
+            const result = await services.print.printWithRetry({ data: bytesToBase64(labelEscPos(parcel, { trackingUrl: trackingUrl(parcel.trackingToken) })), labels: 1 }, { attempts: 2 });
             print.textContent = result.adapter === 'cloud' ? 'Queued to cloud' : 'Printed';
           } catch (error) {
             print.textContent = 'Print failed';
