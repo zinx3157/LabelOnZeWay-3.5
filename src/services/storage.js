@@ -11,6 +11,7 @@ export function createStorageService() {
           customers: Array.isArray(parsed.customers) ? parsed.customers : [],
           parcels: Array.isArray(parsed.parcels) ? parsed.parcels : [],
           archive: Array.isArray(parsed.archive) ? parsed.archive : [],
+          claims: Array.isArray(parsed.claims) ? parsed.claims : [],
           workspace: parsed.workspace || null,
         };
       } catch {
@@ -22,6 +23,7 @@ export function createStorageService() {
         customers: state.customers || [],
         parcels: state.parcels || [],
         archive: state.archive || [],
+        claims: state.claims || [],
         workspace: state.workspace || null,
         savedAt: new Date().toISOString(),
       };
