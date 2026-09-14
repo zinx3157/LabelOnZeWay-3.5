@@ -63,3 +63,16 @@ test('OCR keeps explicit recipient while suppressing nearby unrelated text', () 
   assert.match(out.address, /Andavamamba Antananarivo/i);
   assert.doesNotMatch(out.address, /SRI LANKA|998877/i);
 });
+
+test('OCR does not create an address from a standalone location on a product photo', () => {
+  const out = extractContact('TOMMY HILFIGER\nMADAGASCAR COLLECTION\nTaille: S\nPrix: 20 000 Ar');
+  assert.equal(out.address, '');
+  assert.equal(out.contactDetected, false);
+});
+
+test('OCR reads price nearest the PRIX anchor on a mixed product line', () => {
+  const out = extractContact('TOMMY HILFIGER\nTaille: S Prix: 20 OOO Ar Ref 998877');
+  assert.equal(out.amount, 20000);
+  assert.equal(out.item.size, 'S');
+  assert.equal(out.address, '');
+});
