@@ -76,3 +76,19 @@ test('OCR reads price nearest the PRIX anchor on a mixed product line', () => {
   assert.equal(out.item.size, 'S');
   assert.equal(out.address, '');
 });
+
+test('OCR reads a price placed on the line after PRIX', () => {
+  const out = extractContact('TOMMY HILFIGER\nTaille S\nPRIX\n20 000 Ar\nRef 998877');
+  assert.equal(out.amount, 20000);
+  assert.equal(out.address, '');
+});
+
+test('OCR tolerates common PRIX glyph confusion', () => {
+  const out = extractContact('TOMMY HILFIGER\nPRlX : 25 OOO Ar\nSTYLE 998877');
+  assert.equal(out.amount, 25000);
+});
+
+test('OCR accepts a currency-labelled amount even when the price word is lost', () => {
+  const out = extractContact('TOMMY HILFIGER\n20 000 MGA\nSTYLE 998877');
+  assert.equal(out.amount, 20000);
+});
