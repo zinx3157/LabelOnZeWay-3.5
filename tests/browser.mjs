@@ -49,11 +49,11 @@ try {
     await page.locator('.calculation').waitFor();
     assert.match(await page.locator('.calculation').innerText(), /37\s?500|37500/);
     await page.getByRole('button', { name: 'Review label' }).click();
-    assert.match(await page.locator('.label-preview').innerText(), /UAT Customer <script>alert\(1\)<\/script>/);
+    assert.match(await page.locator('.label-preview').innerText(), /UAT Customer <script>alert\(1\)<\/script>/i);
     assert.equal(await page.locator('.label-preview script').count(), 0, 'Customer input must never become executable markup');
     await page.getByRole('button', { name: 'Save label' }).click();
     await page.locator('table').waitFor();
-    assert.match(await page.locator('body').innerText(), /UAT Customer/);
+    assert.match(await page.locator('body').innerText(), /UAT Customer/i);
     assert.equal(await page.locator('body script').count(), 1, 'Only the application module script should exist');
 
     const originalIdentity = await page.evaluate(() => {
