@@ -28,3 +28,20 @@ test('OCR returns zero amount rather than inventing one from phone or pick ident
   assert.equal(out.amount, 0);
   assert.equal(out.phone, '0395566677');
 });
+
+test('OCR classifies a product image without inventing customer data', () => {
+  const out = extractContact('TOMMY HILFIGER\nS/P\nMADE IN SRI LANKA\nFABRIQUE AU SRI LANKA\nTaille: S\nPrix: 20 000 Ar');
+  assert.equal(out.name, '');
+  assert.equal(out.phone, '');
+  assert.equal(out.address, '');
+  assert.equal(out.contactDetected, false);
+  assert.equal(out.amount, 20000);
+  assert.equal(out.item.brand, 'TOMMY HILFIGER');
+  assert.equal(out.item.size, 'S');
+  assert.equal(out.item.note, 'TOMMY HILFIGER · Size S');
+});
+
+test('OCR requires price context instead of treating unrelated product numbers as money', () => {
+  const out = extractContact('TOMMY HILFIGER\nSTYLE 998877\nSIZE M\nMADE IN SRI LANKA');
+  assert.equal(out.amount, 0);
+});
