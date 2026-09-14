@@ -16,39 +16,42 @@ function memoryStorage() {
 
 globalThis.localStorage = memoryStorage();
 
-test('bridge health falls back from /health to /api/health', async () => {
+test('2.5.4 bridge health falls back from /health to /api/health and probes POS80C', async () => {
   const calls = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url) => {
     const target = String(url);
     calls.push(target);
-    if (target === 'http://192.168.100.14:8765/health') throw new Error('not found');
-    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    if (target.includes('/health?')) throw new Error('not found');
+    return new Response(JSON.stringify({ ok: true, printer_ok: true, version: '2.0' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   };
   try {
     const print = createPrintService({ supabase: {}, store: createStore() });
     const result = await print.health();
     assert.equal(result.bridge, 'online');
-    assert.equal(calls[0], 'http://192.168.100.14:8765/health');
-    assert.equal(calls[1], 'http://192.168.100.14:8765/api/health');
+    assert.equal(result.printer, 'online');
+    assert.match(calls[0], /\/health\?host=192\.168\.100\.73&port=9100$/);
+    assert.match(calls[1], /\/api\/health\?host=192\.168\.100\.73&port=9100$/);
   } finally {
     globalThis.fetch = originalFetch;
   }
 });
 
-test('bridge printing retries after a recoverable failure', async () => {
-  let attempts = 0;
+test('2.5.4 bridge printing falls back from /api/print to /print and retries safely', async () => {
+  const calls = [];
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => {
-    attempts += 1;
-    if (attempts === 1) return new Response(JSON.stringify({ error: 'printer unavailable' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
-    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  globalThis.fetch = async (url) => {
+    const target = String(url);
+    calls.push(target);
+    if (target.endsWith('/api/print')) return new Response(JSON.stringify({ error: 'temporary route failure' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ ok: true, bytes_sent: 1 }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   };
   try {
     const print = createPrintService({ supabase: {}, store: createStore() });
     const result = await print.printWithRetry({ data: 'AA==', labels: 1 }, { mode: 'bridge', attempts: 2 });
-    assert.equal(result.adapter, 'bridge');
-    assert.equal(attempts, 2);
+    assert.equal(result.adapter, 'bridge-2.5.4');
+    assert.equal(result.endpoint, '/print');
+    assert.deepEqual(calls.slice(0, 2), ['http://192.168.100.14:8765/api/print', 'http://192.168.100.14:8765/print']);
   } finally {
     globalThis.fetch = originalFetch;
   }
