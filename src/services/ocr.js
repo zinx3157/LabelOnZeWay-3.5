@@ -1,7 +1,9 @@
 const PHONE_PREFIXES = new Set(['032','033','034','035','037','038','039']);
 const OPERATION_WORDS = /\b(deliver(?:y)?|livraison|collect(?:er)?|item|mode|pick|qty|quantit[eé]|tel(?:ephone)?|phone|tracking|exp[eé]dition|colis|parcel|sender|exp[eé]diteur|total|prix|price|cod)\b/i;
 const ADDRESS_CUES = /\b(lot|parcelle|cit[eé]|b\.?p\.?|rue|route|avenue|av\.?|quartier|fokontany|commune|district|village|immeuble|bloc|appartement|apt\.?|akaiky|akaiki|en\s+face|[àa]\s+c[oô]t[eé]|arr[eê]t|pr[eè]s\s+de|chez)\b/i;
+const ADDRESS_CUES_GLOBAL = /\b(lot|parcelle|cit[eé]|b\.?p\.?|rue|route|avenue|av\.?|quartier|fokontany|commune|district|village|immeuble|bloc|appartement|apt\.?|akaiky|akaiki|en\s+face|[àa]\s+c[oô]t[eé]|arr[eê]t|pr[eè]s\s+de|chez)\b/gi;
 const AMOUNT_ANCHOR = /\b(prix|price|collect(?:er)?|[àa]\s*collecter|cod|total|montant)\b/i;
+const LOCATION_HINTS = /\b(antananarivo|tana|madagascar|toamasina|tamatave|antsirabe|fianarantsoa|mahajanga|toliara|diego|antsiranana)\b/i;
 const DIGIT_CONFUSIONS = Object.freeze({ O:'0', o:'0', Q:'0', D:'0', I:'1', l:'1', '|':'1', Z:'2', z:'2', S:'5', s:'5', B:'8', G:'6', b:'6', g:'9', q:'9' });
 
 function cleanLine(value = '') {
@@ -24,7 +26,7 @@ function normalizePhone(value = '') {
 }
 
 function phoneCandidates(text = '') {
-  const candidates = String(text).match(/(?:\+?\s*261|0|[OoQDI|l])(?:[\s.\-/]*[0-9OoQDI|lZzSsBGbgq]){8,12}/g) || [];
+  const candidates = String(text).match(/(?:\+?[ \t]*261|0|[OoQDI|l])(?:[ \t.\-/]*[0-9OoQDI|lZzSsBGbgq]){8,12}/g) || [];
   const seen = new Set();
   return candidates.map((raw) => ({ raw, local: normalizePhone(raw) }))
     .filter(({ local }) => local.length === 10 && PHONE_PREFIXES.has(local.slice(0, 3)))
@@ -41,13 +43,15 @@ function extractAmount(lines = [], phones = []) {
   const phoneSet = new Set(phones.map((item) => item.local));
   const matches = [];
   lines.forEach((line, lineIndex) => {
+    const anchored = AMOUNT_ANCHOR.test(line);
+    const hasCurrency = /\bar\b/i.test(line);
+    if (OPERATION_WORDS.test(line) && !anchored && !hasCurrency) return;
     const tokens = line.match(/(?:AR\s*)?[0-9OoQDI|lZzSsBGbgq]{1,3}(?:[ .,'-][0-9OoQDI|lZzSsBGbgq]{3})+(?:\s*AR)?|(?:AR\s*)?[0-9OoQDI|lZzSsBGbgq]{4,8}(?:\s*AR)?/gi) || [];
     for (const token of tokens) {
       const value = parseAmountToken(token);
       if (!value || phoneSet.has(normalizePhone(token))) continue;
-      const anchored = AMOUNT_ANCHOR.test(line);
-      const hasCurrency = /\bar\b/i.test(token) || /\bar\b/i.test(line);
-      const score = (anchored ? 5 : 0) + (hasCurrency ? 3 : 0) + (value >= 5000 ? 1 : 0) - (lineIndex > 6 ? 0.25 : 0);
+      const tokenHasCurrency = /\bar\b/i.test(token) || hasCurrency;
+      const score = (anchored ? 5 : 0) + (tokenHasCurrency ? 3 : 0) + (value >= 5000 ? 1 : 0) - (lineIndex > 6 ? 0.25 : 0);
       matches.push({ value, score });
     }
   });
@@ -55,7 +59,7 @@ function extractAmount(lines = [], phones = []) {
   return matches[0] || { value: 0, score: 0 };
 }
 
-function scoreName(line = '') {
+function scoreName(line = '', index = -1, phoneLineIndex = -1) {
   if (line.length < 3 || line.length > 80) return -99;
   if (OPERATION_WORDS.test(line) || ADDRESS_CUES.test(line)) return -99;
   const digits = (line.match(/\d/g) || []).length;
@@ -65,8 +69,10 @@ function scoreName(line = '') {
   const words = line.split(/\s+/).filter(Boolean).length;
   let score = letters / Math.max(1, line.length) * 4;
   if (words >= 2 && words <= 5) score += 3;
-  if (/^[A-ZÀ-Ý][A-Za-zÀ-ÿ' -]+$/.test(line)) score += 1;
   if (/\b(mr|mme|m|madame|monsieur)\.?\b/i.test(line)) score += 1;
+  if (phoneLineIndex >= 0 && index === phoneLineIndex - 1) score += 2;
+  else if (phoneLineIndex >= 0 && index < phoneLineIndex && phoneLineIndex - index <= 2) score += 1;
+  if (LOCATION_HINTS.test(line)) score -= 2;
   return score;
 }
 
@@ -75,9 +81,14 @@ function scoreAddress(line = '') {
   let score = 0;
   if (ADDRESS_CUES.test(line)) score += 5;
   if (/\d/.test(line) && /[A-Za-zÀ-ÿ]/.test(line)) score += 2;
+  if (LOCATION_HINTS.test(line)) score += 2;
   if (line.length >= 12) score += 1;
   if (/[,;/-]/.test(line)) score += .5;
   return score;
+}
+
+function cleanAddressLine(line = '') {
+  return cleanLine(line.replace(ADDRESS_CUES_GLOBAL, ' ').replace(/\s*[,;]\s*/g, ', '));
 }
 
 function confidenceScore(result) {
@@ -94,8 +105,9 @@ export function extractContact(text = '') {
   const lines = normalized.split(/\n+/).map(cleanLine).filter(Boolean);
   const phones = phoneCandidates(normalized);
   const phone = phones[0]?.local || '';
+  const phoneLineIndex = lines.findIndex((line) => phones.some(({ raw, local }) => line.includes(raw) || normalizePhone(line).includes(local)));
 
-  const rankedNames = lines.map((line, index) => ({ line, index, score: scoreName(line) }))
+  const rankedNames = lines.map((line, index) => ({ line, index, score: scoreName(line, index, phoneLineIndex) }))
     .filter((item) => item.score > 0)
     .sort((a, b) => b.score - a.score || a.index - b.index);
   const name = rankedNames[0]?.line || '';
@@ -108,7 +120,7 @@ export function extractContact(text = '') {
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .slice(0, 4)
     .sort((a, b) => a.index - b.index);
-  const address = addressCandidates.map((item) => item.line).join(', ');
+  const address = addressCandidates.map((item) => cleanAddressLine(item.line)).filter(Boolean).join(', ');
 
   const result = {
     name,
@@ -116,7 +128,7 @@ export function extractContact(text = '') {
     address,
     amount: amountMatch.value,
     raw: normalized,
-    confidence: { name: name ? Math.min(1, rankedNames[0].score / 8) : 0, phone: phone ? 1 : 0, address: address ? Math.min(1, addressCandidates.reduce((sum, item) => sum + item.score, 0) / 10) : 0, amount: amountMatch.value ? Math.min(1, amountMatch.score / 8) : 0 },
+    confidence: { name: name ? Math.min(1, rankedNames[0].score / 9) : 0, phone: phone ? 1 : 0, address: address ? Math.min(1, addressCandidates.reduce((sum, item) => sum + item.score, 0) / 10) : 0, amount: amountMatch.value ? Math.min(1, amountMatch.score / 8) : 0 },
   };
   result.confidence.overall = confidenceScore(result);
   return result;
@@ -143,23 +155,24 @@ async function rotateImage270(source) {
 
 export function createOcrService() {
   let worker = null;
+
+  function canSetParameters(activeWorker) {
+    return typeof activeWorker?.setParameters === 'function';
+  }
+
+  async function setPageMode(activeWorker, mode) {
+    if (!canSetParameters(activeWorker)) return;
+    await activeWorker.setParameters({ tessedit_pageseg_mode: String(mode) });
+  }
+
   async function ensureWorker() {
     if (worker) return worker;
     const module = await import('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/+esm');
     const createWorker = module.createWorker || module.default?.createWorker;
     if (typeof createWorker !== 'function') throw new Error('OCR engine failed to load. Check internet access and retry.');
     worker = await createWorker('eng');
-    if (activeSetParameters(worker)) await worker.setParameters({ preserve_interword_spaces: '1', user_defined_dpi: '150', tessedit_pageseg_mode: '6' });
+    if (canSetParameters(worker)) await worker.setParameters({ preserve_interword_spaces: '1', user_defined_dpi: '150', tessedit_pageseg_mode: '6' });
     return worker;
-  }
-
-  function activeSetParameters(activeWorker) {
-    return typeof activeWorker?.setParameters === 'function';
-  }
-
-  async function setPageMode(activeWorker, mode) {
-    if (!activeSetParameters(activeWorker)) return;
-    await activeWorker.setParameters({ tessedit_pageseg_mode: String(mode) });
   }
 
   async function recognize(image) {
