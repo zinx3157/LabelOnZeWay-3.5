@@ -156,8 +156,8 @@ try {
       state.workspace = { id: 'uat-workspace', name: 'UAT Company', profileId: 'ps_default' };
       localStorage.setItem(key, JSON.stringify(state));
     });
-    await page.goto(`${BASE}#/profiles`, { waitUntil: 'domcontentloaded' });
     await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.goto(`${BASE}#/profiles`, { waitUntil: 'domcontentloaded' });
     await page.locator('input[name="profileId"]').fill('ops_uat');
     await page.getByRole('button', { name: 'Use profile' }).click();
     assert.match(await page.locator('.topbar').innerText(), /UAT Company \/ ops_uat/);
