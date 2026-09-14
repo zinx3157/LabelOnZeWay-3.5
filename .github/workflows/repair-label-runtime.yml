@@ -61,3 +61,4 @@ jobs:
           git add src/modules/label.js sw.js .github/workflows/repair-label-price.yml
           git commit -m 'fix: restore label runtime and persist OCR prices'
           git push
+# trigger 2
