@@ -306,203 +306,427 @@ function buildBatchParcel(item, current, customers, parcels) {
 }
 
 function renderBatchScan({ panel, state, services, store, batchState }) {
-  const shell = el('div', 'batch-scan-flow');
-  const toolbar = el('div', 'batch-scan-toolbar');
-  const summary = el('div', 'batch-progress');
-  const scanned = batchState.items.filter((item) => ['review','approved','created'].includes(item.status)).length;
-  summary.append(el('strong', '', `${scanned}/${batchState.items.length} scanned`), el('small', '', `${batchState.items.filter((item) => item.status === 'approved').length} approved · ${batchState.items.filter((item) => item.status === 'error').length} failed`));
+  panel.classList.add('batch-workspace-card');
+  batchState.filter ||= 'all';
+  batchState.autoScan ??= true;
+  batchState.autoApprove ??= false;
+  batchState.processing ??= false;
 
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  input.multiple = true;
-  input.setAttribute('capture', 'environment');
-  input.className = 'scan-file-input';
-  const add = action('Add photos');
-  const scanAll = action('Scan queue', 'primary');
-  const approveAll = action('Approve all ready');
-  toolbar.append(summary, add, scanAll, approveAll, input);
-
-  const dropZone = el('div', 'batch-drop-zone');
-  dropZone.append(el('strong', '', 'Drop label photos here'), el('small', '', 'Desktop: drag multiple files · iPhone/Android: tap Add photos repeatedly to keep scanning'));
+  const shell = el('div', 'batch-scan-flow batch-scan-v2');
+  const command = el('section', 'batch-command-center');
+  const intro = el('div', 'batch-command-copy');
+  intro.append(el('strong', '', 'Batch Scanner'), el('small', '', 'Capture many labels, scan automatically, review only exceptions, then create and print.'));
+  const stats = el('div', 'batch-stat-grid');
+  const controls = el('div', 'batch-control-row');
+  const filters = el('div', 'batch-filter-row');
+  const bulk = el('div', 'batch-bulk-row');
   const queue = el('div', 'batch-scan-queue');
-  const actions = el('div', 'batch-final-actions');
-  const createAll = action('Create approved labels', 'primary');
-  const printSelected = action('Print selected');
-  const printAll = action('Print all created');
-  const result = el('small', 'batch-result');
-  actions.append(createAll, printSelected, printAll, result);
+  const footer = el('div', 'batch-sticky-actions');
+  const result = el('div', 'batch-result');
 
-  function addFiles(files) {
-    for (const file of Array.from(files || [])) {
-      if (!file.type.startsWith('image/')) continue;
-      batchState.items.push({
-        id: makeId('scan'), file, previewUrl: URL.createObjectURL(file), status: 'queued', selected: true,
-        contact: { name: '', phone: '', address: '', amount: 0 }, qty: 1, unitPrice: 0, deliveryCharge: 0, parcelId: null,
-      });
-    }
-    redraw();
+  const galleryInput = document.createElement('input');
+  galleryInput.type = 'file';
+  galleryInput.accept = 'image/*';
+  galleryInput.multiple = true;
+  galleryInput.className = 'scan-file-input';
+  galleryInput.setAttribute('aria-label', 'Add batch photos');
+
+  const cameraInput = document.createElement('input');
+  cameraInput.type = 'file';
+  cameraInput.accept = 'image/*';
+  cameraInput.setAttribute('capture', 'environment');
+  cameraInput.className = 'scan-file-input';
+  cameraInput.setAttribute('aria-label', 'Take batch photo');
+
+  const addPhotos = action('Add photos', 'primary');
+  const takePhoto = action('Take photo');
+  const scanQueue = action('Scan queue', 'primary');
+  const approveComplete = action('Approve complete');
+  const selectAll = action('Select all');
+  const deselectAll = action('Deselect');
+  const removeSelected = action('Remove selected');
+  const clearFinished = action('Clear finished');
+  const createApproved = action('Create approved', 'primary');
+  const createPrint = action('Create + print');
+  const printCreated = action('Print selected created');
+
+  function toggle(label, checked, handler) {
+    const wrap = document.createElement('label');
+    wrap.className = 'batch-toggle';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = checked;
+    input.addEventListener('change', () => handler(input.checked));
+    wrap.append(input, el('span', '', label));
+    return wrap;
+  }
+
+  const autoScan = toggle('Auto scan new photos', batchState.autoScan, (value) => { batchState.autoScan = value; });
+  const autoApprove = toggle('Auto approve complete OCR', batchState.autoApprove, (value) => { batchState.autoApprove = value; });
+  controls.append(addPhotos, takePhoto, scanQueue, approveComplete, autoScan, autoApprove, galleryInput, cameraInput);
+  bulk.append(selectAll, deselectAll, removeSelected, clearFinished);
+
+  const dropZone = el('button', 'batch-drop-zone batch-drop-zone-v2');
+  dropZone.type = 'button';
+  dropZone.append(el('strong', '', 'Drop label photos here'), el('small', '', 'Desktop: drag multiple images · Mobile: Take photo repeatedly or choose from gallery'));
+
+  function counts() {
+    const out = { total: batchState.items.length, queued: 0, scanning: 0, review: 0, approved: 0, created: 0, error: 0, skipped: 0 };
+    batchState.items.forEach((item) => { if (Object.hasOwn(out, item.status)) out[item.status] += 1; });
+    return out;
+  }
+
+  function complete(item) {
+    return !!item.contact.name.trim() && !!(item.contact.phone.trim() || item.contact.address.trim());
+  }
+
+  function selected(predicate = () => true) {
+    return batchState.items.filter((item) => item.selected && predicate(item));
+  }
+
+  function showResult(message, tone = '') {
+    result.textContent = message;
+    result.className = `batch-result ${tone}`.trim();
+  }
+
+  function stat(label, value, tone = '') {
+    const node = el('div', `batch-stat ${tone}`.trim());
+    node.append(el('strong', '', String(value)), el('small', '', label));
+    return node;
+  }
+
+  function refreshStats() {
+    const c = counts();
+    stats.replaceChildren(
+      stat('Total', c.total),
+      stat('Queued', c.queued + c.scanning, c.scanning ? 'is-active' : ''),
+      stat('Review', c.review, c.review ? 'is-warning' : ''),
+      stat('Approved', c.approved, c.approved ? 'is-success' : ''),
+      stat('Created', c.created, c.created ? 'is-success' : ''),
+      stat('Errors', c.error, c.error ? 'is-danger' : ''),
+    );
+  }
+
+  function statusFor(item) {
+    if (item.status === 'queued') return ['Queued', ''];
+    if (item.status === 'scanning') return ['Scanning…', 'warning'];
+    if (item.status === 'review') return [complete(item) ? 'Ready to review' : 'Needs details', 'warning'];
+    if (item.status === 'approved') return ['Approved', 'success'];
+    if (item.status === 'created') return ['Created', 'success'];
+    if (item.status === 'error') return ['OCR failed', 'danger'];
+    return ['Skipped', ''];
+  }
+
+  function filterMatch(item) {
+    if (batchState.filter === 'all') return true;
+    if (batchState.filter === 'review') return item.status === 'review';
+    if (batchState.filter === 'approved') return item.status === 'approved';
+    if (batchState.filter === 'errors') return item.status === 'error';
+    return true;
+  }
+
+  function refreshFilters() {
+    const c = counts();
+    filters.replaceChildren();
+    [['all', `All ${c.total}`], ['review', `Review ${c.review}`], ['approved', `Approved ${c.approved}`], ['errors', `Errors ${c.error}`]].forEach(([key, text]) => {
+      const button = action(text, batchState.filter === key ? 'primary' : '');
+      button.classList.add('batch-filter-button');
+      button.addEventListener('click', () => { batchState.filter = key; redraw(); });
+      filters.append(button);
+    });
+  }
+
+  function syncFields(item, fields) {
+    item.contact.name = fields.name.input.value.trim();
+    item.contact.phone = fields.phone.input.value.trim();
+    item.contact.address = fields.address.input.value.trim();
+    item.qty = Math.max(1, Number(fields.qty.input.value) || 1);
+    item.unitPrice = Math.max(0, Number(fields.price.input.value) || 0);
+    item.deliveryCharge = Math.max(0, Number(fields.delivery.input.value) || 0);
+  }
+
+  function rowFor(item, index) {
+    const row = el('article', `batch-card status-${item.status}`);
+    const check = document.createElement('input');
+    check.type = 'checkbox';
+    check.className = 'batch-row-select';
+    check.checked = item.selected;
+    check.setAttribute('aria-label', `Select scan ${index + 1}`);
+    check.addEventListener('change', () => { item.selected = check.checked; refreshActions(); });
+
+    const visual = el('div', 'batch-card-visual');
+    const image = document.createElement('img');
+    image.src = item.previewUrl;
+    image.alt = `Batch label ${index + 1}`;
+    image.className = 'batch-scan-thumb';
+    visual.append(image, el('span', 'batch-sequence', `#${index + 1}`));
+
+    const body = el('div', 'batch-scan-body');
+    const head = el('div', 'batch-row-head');
+    const fileInfo = el('div', 'batch-file-identity');
+    fileInfo.append(el('strong', '', item.file.name || `Photo ${index + 1}`), el('small', '', `${Math.max(1, Math.round((item.file.size || 0) / 1024))} KB`));
+    const [statusText, statusTone] = statusFor(item);
+    head.append(fileInfo, statusPill(statusText, statusTone));
+
+    const grid = el('div', 'batch-fields-v2');
+    const name = field('Customer', `batch-name-${item.id}`, item.contact.name, { placeholder: 'Full name' });
+    const phone = field('Phone', `batch-phone-${item.id}`, item.contact.phone, { type: 'tel', inputmode: 'tel', placeholder: '03x…' });
+    const address = field('Address', `batch-address-${item.id}`, item.contact.address, { multiline: true, placeholder: 'Delivery address' });
+    const qty = field('Qty', `batch-qty-${item.id}`, item.qty, { type: 'number', inputmode: 'numeric', min: 1 });
+    const price = field('Unit price (Ar)', `batch-price-${item.id}`, item.unitPrice, { type: 'number', inputmode: 'decimal', min: 0 });
+    const delivery = field('Delivery (Ar)', `batch-delivery-${item.id}`, item.deliveryCharge, { type: 'number', inputmode: 'decimal', min: 0 });
+    const fields = { name, phone, address, qty, price, delivery };
+    grid.append(name.wrap, phone.wrap, address.wrap, qty.wrap, price.wrap, delivery.wrap);
+
+    const money = el('div', 'batch-money-strip');
+    const collectValue = el('strong', '', `${formatAr(calculateCollect(item.qty, item.unitPrice))} Ar`);
+    const collect = el('div', 'batch-money-value');
+    collect.append(el('small', '', 'COLLECT'), collectValue);
+    const deliveryValue = el('strong', '', `${formatAr(item.deliveryCharge)} Ar`);
+    const deliveryBox = el('div', 'batch-money-value');
+    deliveryBox.append(el('small', '', 'DELIVERY'), deliveryValue);
+    money.append(collect, deliveryBox);
+
+    const matchBox = el('div', 'batch-match-box');
+    const refreshMatch = () => {
+      matchBox.replaceChildren();
+      const match = findCustomerMatch(store.getState().customers, item.contact);
+      if (match) matchBox.append(statusPill(`Address Book · ${match.name}`, 'success'));
+      else if (item.contact.name) matchBox.append(statusPill('New customer'));
+      if (item.error) matchBox.append(el('small', 'batch-error-text', item.error));
+    };
+    refreshMatch();
+
+    Object.values(fields).forEach((entry) => entry.input.addEventListener('input', () => {
+      syncFields(item, fields);
+      if (item.status === 'approved') item.status = 'review';
+      collectValue.textContent = `${formatAr(calculateCollect(item.qty, item.unitPrice))} Ar`;
+      deliveryValue.textContent = `${formatAr(item.deliveryCharge)} Ar`;
+      refreshMatch();
+      refreshActions();
+    }));
+
+    const actions = el('div', 'batch-row-actions');
+    const scan = action(item.status === 'error' ? 'Retry OCR' : 'Scan OCR');
+    const approve = action(item.status === 'approved' ? 'Approved ✓' : 'Approve', 'primary');
+    const useSaved = action('Use saved customer');
+    const skip = action('Skip');
+    const remove = action('Remove');
+    scan.disabled = item.status === 'scanning' || item.status === 'created';
+    approve.disabled = item.status === 'scanning' || item.status === 'created';
+    useSaved.disabled = item.status === 'created';
+    skip.disabled = item.status === 'created';
+    remove.disabled = item.status === 'scanning';
+
+    scan.addEventListener('click', async () => { syncFields(item, fields); await scanItem(item); });
+    approve.addEventListener('click', () => {
+      syncFields(item, fields);
+      if (!item.contact.name) { name.input.focus(); showResult('Customer name is required before approval.', 'danger'); return; }
+      item.status = 'approved';
+      item.selected = true;
+      redraw();
+    });
+    useSaved.addEventListener('click', () => {
+      syncFields(item, fields);
+      const match = findCustomerMatch(store.getState().customers, item.contact);
+      if (!match) { showResult('No matching saved customer for this row.', 'warning'); return; }
+      item.contact = { name: match.name || '', phone: match.phone || '', address: match.address || '' };
+      item.status = 'review';
+      redraw();
+    });
+    skip.addEventListener('click', () => { item.status = 'skipped'; item.selected = false; redraw(); });
+    remove.addEventListener('click', () => {
+      if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      batchState.items = batchState.items.filter((entry) => entry.id !== item.id);
+      redraw();
+    });
+    actions.append(scan, approve, useSaved, skip, remove);
+    body.append(head, grid, money, matchBox, actions);
+    row.append(check, visual, body);
+    return row;
+  }
+
+  function refreshActions() {
+    const c = counts();
+    scanQueue.disabled = batchState.processing || !(c.queued || c.error);
+    approveComplete.disabled = !batchState.items.some((item) => item.status === 'review' && complete(item));
+    selectAll.disabled = c.total === 0;
+    deselectAll.disabled = !batchState.items.some((item) => item.selected);
+    removeSelected.disabled = selected((item) => item.status !== 'scanning').length === 0;
+    clearFinished.disabled = !batchState.items.some((item) => ['created', 'skipped'].includes(item.status));
+    createApproved.disabled = c.approved === 0;
+    createPrint.disabled = c.approved === 0 || batchState.processing;
+    printCreated.disabled = selected((item) => item.status === 'created').length === 0 || batchState.processing;
   }
 
   function redraw() {
+    refreshStats();
+    refreshFilters();
     queue.replaceChildren();
-    const currentState = store.getState();
-    const scannedCount = batchState.items.filter((item) => ['review','approved','created'].includes(item.status)).length;
-    summary.firstChild.textContent = `${scannedCount}/${batchState.items.length} scanned`;
-    summary.lastChild.textContent = `${batchState.items.filter((item) => item.status === 'approved').length} approved · ${batchState.items.filter((item) => item.status === 'error').length} failed`;
+    const visible = batchState.items.filter(filterMatch);
+    if (!visible.length) {
+      const empty = el('div', 'batch-empty-state');
+      empty.append(el('strong', '', batchState.items.length ? 'Nothing in this view' : 'No label photos yet'), el('small', '', batchState.items.length ? 'Choose another filter.' : 'Add photos or take a picture to start.'));
+      queue.append(empty);
+    } else {
+      visible.forEach((item) => queue.append(rowFor(item, batchState.items.indexOf(item))));
+    }
+    refreshActions();
+  }
 
-    batchState.items.forEach((item, index) => {
-      const row = el('article', 'batch-scan-row');
-      const select = document.createElement('input');
-      select.type = 'checkbox';
-      select.checked = item.selected;
-      select.setAttribute('aria-label', `Select scan ${index + 1}`);
-      select.addEventListener('change', () => { item.selected = select.checked; });
-      const image = document.createElement('img');
-      image.src = item.previewUrl;
-      image.alt = `Scan ${index + 1}`;
-      image.className = 'batch-scan-thumb';
-      const body = el('div', 'batch-scan-body');
-      const head = el('div', 'batch-row-head');
-      head.append(el('strong', '', `#${index + 1} ${item.file.name}`), statusPill(item.status === 'queued' ? 'Queued' : item.status === 'scanning' ? 'Scanning…' : item.status === 'review' ? 'Review' : item.status === 'approved' ? 'Approved' : item.status === 'created' ? 'Created' : 'OCR failed', item.status === 'approved' || item.status === 'created' ? 'success' : item.status === 'error' ? 'danger' : item.status === 'scanning' ? 'warning' : ''));
-      const grid = el('div', 'batch-fields-grid');
-      const name = field('Name', `batch-name-${item.id}`, item.contact.name, { placeholder: 'Customer name' });
-      const phone = field('Phone', `batch-phone-${item.id}`, item.contact.phone, { type: 'tel', inputmode: 'tel' });
-      const address = field('Address', `batch-address-${item.id}`, item.contact.address, { multiline: true });
-      const qty = field('Qty', `batch-qty-${item.id}`, item.qty, { type: 'number', inputmode: 'numeric', min: 1 });
-      const price = field('Unit price (Ar)', `batch-price-${item.id}`, item.unitPrice, { type: 'number', inputmode: 'decimal', min: 0 });
-      const delivery = field('Delivery (Ar)', `batch-delivery-${item.id}`, item.deliveryCharge, { type: 'number', inputmode: 'decimal', min: 0 });
-      const inputs = [name, phone, address, qty, price, delivery];
-      inputs.forEach((entry) => entry.input.addEventListener('input', () => {
-        item.contact.name = name.input.value;
-        item.contact.phone = phone.input.value;
-        item.contact.address = address.input.value;
-        item.qty = qty.input.value;
-        item.unitPrice = price.input.value;
-        item.deliveryCharge = delivery.input.value;
-      }));
-      grid.append(name.wrap, phone.wrap, address.wrap, qty.wrap, price.wrap, delivery.wrap);
-      const match = findCustomerMatch(currentState.customers, item.contact);
-      const meta = el('div', 'batch-row-meta');
-      meta.append(el('span', '', `Collect ${formatAr(calculateCollect(item.qty, item.unitPrice))} Ar`));
-      if (match) meta.append(statusPill(`Address Book: ${match.name}`, 'success'));
-      const rowActions = el('div', 'button-row');
-      const retry = action(item.status === 'error' ? 'Retry OCR' : 'Scan');
-      const approve = action('Approve', 'primary');
-      const edit = action('Edit');
-      const skip = action('Skip');
-      retry.disabled = item.status === 'scanning' || item.status === 'created';
-      approve.disabled = item.status === 'created';
-      edit.disabled = item.status === 'created';
-      skip.disabled = item.status === 'created';
-      retry.addEventListener('click', async () => { await scanItem(item); });
-      approve.addEventListener('click', () => {
-        item.contact.name = name.input.value.trim();
-        item.contact.phone = phone.input.value.trim();
-        item.contact.address = address.input.value.trim();
-        item.qty = qty.input.value;
-        item.unitPrice = price.input.value;
-        item.deliveryCharge = delivery.input.value;
-        if (!item.contact.name) { name.input.focus(); return; }
-        item.status = 'approved';
-        redraw();
+  function addFiles(files) {
+    const seen = new Set(batchState.items.map((item) => `${item.file.name}|${item.file.size}|${item.file.lastModified}`));
+    let added = 0;
+    let duplicates = 0;
+    Array.from(files || []).forEach((file) => {
+      if (!file?.type?.startsWith('image/')) return;
+      const key = `${file.name}|${file.size}|${file.lastModified}`;
+      if (seen.has(key)) { duplicates += 1; return; }
+      seen.add(key);
+      batchState.items.push({
+        id: makeId('scan'), file, previewUrl: URL.createObjectURL(file), status: 'queued', selected: true,
+        contact: { name: '', phone: '', address: '', amount: 0 }, qty: 1, unitPrice: 0, deliveryCharge: 0, parcelId: null, error: '',
       });
-      edit.addEventListener('click', () => name.input.focus());
-      skip.addEventListener('click', () => { item.status = 'skipped'; item.selected = false; redraw(); });
-      rowActions.append(retry, approve, edit, skip);
-      body.append(head, grid, meta, rowActions);
-      row.append(select, image, body);
-      queue.append(row);
+      added += 1;
     });
-    createAll.disabled = batchState.items.filter((item) => item.status === 'approved').length === 0;
-    printSelected.disabled = batchState.items.filter((item) => item.status === 'created' && item.selected).length === 0;
-    printAll.disabled = batchState.items.filter((item) => item.status === 'created').length === 0;
+    showResult(`${added} photo${added === 1 ? '' : 's'} added${duplicates ? ` · ${duplicates} duplicate${duplicates === 1 ? '' : 's'} ignored` : ''}.`, added ? 'success' : 'warning');
+    redraw();
+    if (added && batchState.autoScan) scanPending();
   }
 
   async function scanItem(item) {
     item.status = 'scanning';
+    item.error = '';
     redraw();
     try {
       const contact = await services.ocr.recognize(item.file);
-      item.contact = { ...item.contact, ...contact };
-      if (contact.amount) item.unitPrice = contact.amount;
-      item.status = 'review';
+      item.contact = {
+        ...item.contact,
+        name: contact.name || item.contact.name,
+        phone: contact.phone || item.contact.phone,
+        address: contact.address || item.contact.address,
+        amount: contact.amount || 0,
+      };
+      if (contact.amount) item.unitPrice = Math.max(0, Number(contact.amount) || 0);
+      item.status = batchState.autoApprove && complete(item) ? 'approved' : 'review';
+      item.selected = true;
     } catch (error) {
-      item.error = error.message;
+      item.error = error?.message || 'OCR failed';
       item.status = 'error';
     }
     redraw();
   }
 
-  add.addEventListener('click', () => input.click());
-  input.addEventListener('change', () => { addFiles(input.files); input.value = ''; });
-  dropZone.addEventListener('dragover', (event) => { event.preventDefault(); dropZone.classList.add('dragging'); });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragging'));
-  dropZone.addEventListener('drop', (event) => { event.preventDefault(); dropZone.classList.remove('dragging'); addFiles(event.dataTransfer?.files); });
-
-  scanAll.addEventListener('click', async () => {
-    scanAll.disabled = true;
+  async function scanPending() {
+    if (batchState.processing) return;
     const pending = batchState.items.filter((item) => item.status === 'queued' || item.status === 'error');
-    for (const item of pending) await scanItem(item);
-    scanAll.disabled = false;
-  });
-  approveAll.addEventListener('click', () => {
-    batchState.items.forEach((item) => {
-      if (item.status === 'review' && item.contact.name) item.status = 'approved';
-    });
+    if (!pending.length) return;
+    batchState.processing = true;
+    refreshActions();
+    let done = 0;
+    for (const item of pending) {
+      showResult(`Scanning ${done + 1} of ${pending.length}…`, 'warning');
+      await scanItem(item);
+      done += 1;
+    }
+    batchState.processing = false;
+    const c = counts();
+    showResult(`Scan complete · ${c.review} review · ${c.approved} approved · ${c.error} error${c.error === 1 ? '' : 's'}.`, c.error ? 'warning' : 'success');
     redraw();
-  });
+  }
 
-  createAll.addEventListener('click', () => {
+  function approveCompleteItems() {
+    let done = 0;
+    batchState.items.forEach((item) => {
+      if (item.status === 'review' && complete(item)) { item.status = 'approved'; item.selected = true; done += 1; }
+    });
+    showResult(`${done} complete scan${done === 1 ? '' : 's'} approved.`, done ? 'success' : 'warning');
+    redraw();
+  }
+
+  function createApprovedItems() {
     const approved = batchState.items.filter((item) => item.status === 'approved');
-    if (!approved.length) return;
+    if (!approved.length) return [];
+    const created = [];
     store.update((current) => {
       let customers = [...current.customers];
       let parcels = [...current.parcels];
-      for (const item of approved) {
+      approved.forEach((item) => {
         const built = buildBatchParcel(item, current, customers, parcels);
         customers = built.customers;
         parcels.push(built.parcel);
         item.parcelId = built.parcel.id;
         item.status = 'created';
-      }
+        item.selected = true;
+        created.push(item);
+      });
       return { ...current, customers, parcels };
     });
-    result.textContent = `${approved.length} label${approved.length === 1 ? '' : 's'} created and added to Ready for Dispatch.`;
+    showResult(`${created.length} label${created.length === 1 ? '' : 's'} created and added to Ready for Dispatch.`, 'success');
     redraw();
-  });
+    return created;
+  }
 
   async function printItems(items) {
     let done = 0;
-    const current = store.getState();
     for (const item of items) {
-      const parcel = current.parcels.find((entry) => entry.id === item.parcelId);
+      const parcel = store.getState().parcels.find((entry) => entry.id === item.parcelId);
       if (!parcel) continue;
-      await services.print.printWithRetry({ data: bytesToBase64(labelEscPos(parcel, { trackingUrl: trackingUrl(parcel.trackingToken) })), labels: 1, idempotencyKey: `batch-scan-${parcel.id}-${parcel.modifiedAt}` }, { attempts: 2 });
+      showResult(`Printing/queueing ${done + 1} of ${items.length}…`, 'warning');
+      await services.print.printWithRetry({
+        data: bytesToBase64(labelEscPos(parcel, { trackingUrl: trackingUrl(parcel.trackingToken) })),
+        labels: 1,
+        idempotencyKey: `batch-scan-${parcel.id}-${parcel.modifiedAt}`,
+      }, { attempts: 2 });
       done += 1;
-      result.textContent = `Printed/queued ${done} of ${items.length}.`;
     }
-    result.textContent = `Batch print complete: ${done} label${done === 1 ? '' : 's'}.`;
+    showResult(`Batch print complete · ${done} label${done === 1 ? '' : 's'}.`, 'success');
   }
 
-  printSelected.addEventListener('click', async () => {
-    const items = batchState.items.filter((item) => item.status === 'created' && item.selected);
-    printSelected.disabled = true;
-    try { await printItems(items); } catch (error) { result.textContent = `Print failed: ${error.message}`; }
+  addPhotos.addEventListener('click', () => galleryInput.click());
+  takePhoto.addEventListener('click', () => cameraInput.click());
+  galleryInput.addEventListener('change', () => { addFiles(galleryInput.files); galleryInput.value = ''; });
+  cameraInput.addEventListener('change', () => { addFiles(cameraInput.files); cameraInput.value = ''; });
+  dropZone.addEventListener('click', () => galleryInput.click());
+  dropZone.addEventListener('dragover', (event) => { event.preventDefault(); dropZone.classList.add('dragging'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragging'));
+  dropZone.addEventListener('drop', (event) => { event.preventDefault(); dropZone.classList.remove('dragging'); addFiles(event.dataTransfer?.files); });
+  scanQueue.addEventListener('click', scanPending);
+  approveComplete.addEventListener('click', approveCompleteItems);
+  selectAll.addEventListener('click', () => { batchState.items.forEach((item) => { item.selected = true; }); redraw(); });
+  deselectAll.addEventListener('click', () => { batchState.items.forEach((item) => { item.selected = false; }); redraw(); });
+  removeSelected.addEventListener('click', () => {
+    const ids = new Set(selected((item) => item.status !== 'scanning').map((item) => item.id));
+    batchState.items.forEach((item) => { if (ids.has(item.id) && item.previewUrl) URL.revokeObjectURL(item.previewUrl); });
+    batchState.items = batchState.items.filter((item) => !ids.has(item.id));
+    showResult(`${ids.size} selected item${ids.size === 1 ? '' : 's'} removed.`, ids.size ? 'success' : 'warning');
     redraw();
   });
-  printAll.addEventListener('click', async () => {
-    const items = batchState.items.filter((item) => item.status === 'created');
-    printAll.disabled = true;
-    try { await printItems(items); } catch (error) { result.textContent = `Print failed: ${error.message}`; }
+  clearFinished.addEventListener('click', () => {
+    const finished = batchState.items.filter((item) => ['created', 'skipped'].includes(item.status));
+    finished.forEach((item) => { if (item.previewUrl) URL.revokeObjectURL(item.previewUrl); });
+    batchState.items = batchState.items.filter((item) => !['created', 'skipped'].includes(item.status));
+    showResult(`${finished.length} finished item${finished.length === 1 ? '' : 's'} cleared.`, finished.length ? 'success' : 'warning');
     redraw();
+  });
+  createApproved.addEventListener('click', createApprovedItems);
+  createPrint.addEventListener('click', async () => {
+    createPrint.disabled = true;
+    try { await printItems(createApprovedItems()); } catch (error) { showResult(`Print failed: ${error.message}`, 'danger'); }
+    refreshActions();
+  });
+  printCreated.addEventListener('click', async () => {
+    printCreated.disabled = true;
+    try { await printItems(selected((item) => item.status === 'created')); } catch (error) { showResult(`Print failed: ${error.message}`, 'danger'); }
+    refreshActions();
   });
 
-  shell.append(toolbar, dropZone, queue, actions);
+  command.append(intro, stats, controls, dropZone, filters, bulk);
+  footer.append(createApproved, createPrint, printCreated, result);
+  shell.append(command, queue, footer);
   panel.append(shell);
   redraw();
 }
-
 export function createLabelModule({ store, services }) {
   const ui = { mode: 'single', batch: { items: [] } };
   return {
