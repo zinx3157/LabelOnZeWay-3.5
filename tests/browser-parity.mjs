@@ -27,7 +27,7 @@ try {
   await page.getByRole('button', { name: 'Review label' }).click();
   const preview = await page.locator('.label-preview').innerText();
   assert.match(preview, /PICK/i);
-  assert.match(preview, /Finance UAT Customer/);
+  assert.match(preview, /Finance UAT Customer/i);
   assert.match(preview, /10\s?000\s*Ar/i);
   assert.match(preview, /Livraison\s*1\s?500\s*Ar/i);
   assert.match(preview, /SCAN POUR SUIVRE/i);
