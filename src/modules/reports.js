@@ -27,6 +27,8 @@ function validateBackup(snapshot) {
 }
 
 export function createReportsModule({ store }) {
+  let restoreMessage = '';
+
   return {
     render(state) {
       const section = document.createElement('section');
@@ -54,6 +56,7 @@ export function createReportsModule({ store }) {
       restoreInput.hidden = true;
       const restore = action('Restore JSON backup');
       const status = document.createElement('p');
+      status.textContent = restoreMessage;
       restore.addEventListener('click', () => restoreInput.click());
       restoreInput.addEventListener('change', async () => {
         const file = restoreInput.files?.[0];
@@ -61,10 +64,11 @@ export function createReportsModule({ store }) {
         restoreInput.value = '';
         try {
           const snapshot = validateBackup(JSON.parse(await file.text()));
+          restoreMessage = `Backup restored: ${snapshot.parcels.length} active parcels, ${snapshot.archive.length} archived, ${(snapshot.claims || []).length} claims.`;
           store.setState({ customers: snapshot.customers, parcels: snapshot.parcels, archive: snapshot.archive, claims: snapshot.claims || [], workspace: snapshot.workspace || state.workspace });
-          status.textContent = `Backup restored: ${snapshot.parcels.length} active parcels, ${snapshot.archive.length} archived, ${(snapshot.claims || []).length} claims.`;
         } catch (error) {
-          status.textContent = `Restore rejected: ${error.message}`;
+          restoreMessage = `Restore rejected: ${error.message}`;
+          status.textContent = restoreMessage;
         }
       });
 
