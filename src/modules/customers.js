@@ -126,17 +126,17 @@ export function createCustomersModule({ store }) {
           const identity = document.createElement('div'); identity.className = 'customer-identity';
           identity.append(makeText('strong', 'customer-name', customer.name), makeText('span', 'customer-phone', customer.phone || 'No phone'));
 
-          const location = document.createElement('div'); location.className = 'customer-location';
-          if (customer.area) location.append(makeText('strong', 'customer-area', customer.area));
-          location.append(makeText('span', 'customer-address', customer.address || 'No address'));
+          const addressBlock = document.createElement('div'); addressBlock.className = 'customer-location';
+          if (customer.area) addressBlock.append(makeText('strong', 'customer-area', customer.area));
+          addressBlock.append(makeText('span', 'customer-address', customer.address || 'No address'));
           const history = shipmentHistory(state, customer.id);
-          if (history) location.append(makeText('small', 'customer-history', `Previous: ${history.pickId || 'unknown'} · ${history.status || 'unknown'}`));
+          if (history) addressBlock.append(makeText('small', 'customer-history', `Previous: ${history.pickId || 'unknown'} · ${history.status || 'unknown'}`));
 
           const buttons = document.createElement('div'); buttons.className = 'customer-actions';
           const use = action('Use for label', 'primary'); const edit = action('Edit');
           use.addEventListener('click', () => {
             store.update((next) => ({ ...next, route: 'label', labelDraft: { ...next.labelDraft, step: 2, customerId: customer.id, customer: { name: customer.name, phone: customer.phone, address: customer.address } } }));
-            location.hash = '#/label';
+            window.location.hash = '#/label';
           });
           edit.addEventListener('click', () => {
             const form = document.createElement('div'); form.className = 'workspace-card customer-edit-card';
@@ -153,7 +153,7 @@ export function createCustomersModule({ store }) {
             actions.append(save, cancel); form.append(name.wrap, phone.wrap, area.wrap, address.wrap, actions); row.replaceChildren(form);
           });
           buttons.append(use, edit);
-          row.append(chooser, avatar, identity, location, buttons);
+          row.append(chooser, avatar, identity, addressBlock, buttons);
           list.append(row);
         }
       }
