@@ -24,7 +24,7 @@ function trackingCard(parcel, { readOnly = false, services, store } = {}) {
     ['strong', readOnly ? parcel.pickId : `${parcel.pickId} · ${parcel.customer?.name || ''}`],
     ['span', trackingMilestone(parcel.status)],
     ['span', `Status: ${String(parcel.status || 'unknown').replace('-', ' ')}`],
-    ['small', parcel.archivedAt ? 'Archived shipment' : 'Active shipment'],
+    ['small', parcel.archivedAt || parcel.archived ? 'Archived shipment' : 'Active shipment'],
   ]);
   card.append(copy);
   if (readOnly) return card;
@@ -69,15 +69,33 @@ export function createTrackingModule({ services, store }) {
       section.append(heading(publicToken ? 'Shipment Tracking' : 'Tracking', publicToken ? 'Read-only shipment status.' : 'Parcel status and customer communication.'));
 
       if (publicToken) {
-        const parcel = findByTracking(state, publicToken);
-        if (!parcel) {
-          const invalid = document.createElement('div');
-          invalid.className = 'empty-state';
-          invalid.textContent = 'Tracking ID not found.';
-          section.append(invalid);
-        } else {
-          section.append(trackingCard(parcel, { readOnly: true }));
+        const local = findByTracking(state, publicToken);
+        if (local) {
+          section.append(trackingCard(local, { readOnly: true }));
+          return section;
         }
+        const status = document.createElement('div');
+        status.className = 'empty-state';
+        status.textContent = 'Checking tracking ID…';
+        section.append(status);
+        (async () => {
+          try {
+            const client = await services.supabase.connect();
+            const { data, error } = await client.from('public_tracking')
+              .select('pick_id,status,archived,updated_at')
+              .eq('tracking_token', publicToken)
+              .maybeSingle();
+            if (error) throw error;
+            if (!data) {
+              status.textContent = 'Tracking ID not found.';
+              return;
+            }
+            const parcel = { pickId: data.pick_id, status: data.status, archived: data.archived, statusUpdatedAt: data.updated_at };
+            section.replaceChildren(heading('Shipment Tracking', 'Read-only shipment status.'), trackingCard(parcel, { readOnly: true }));
+          } catch {
+            status.textContent = 'Tracking service temporarily unavailable.';
+          }
+        })();
         return section;
       }
 
