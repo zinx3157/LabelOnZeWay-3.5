@@ -22,7 +22,7 @@ test('2.5.4 bridge health falls back from /health to /api/health and probes POS8
   globalThis.fetch = async (url) => {
     const target = String(url);
     calls.push(target);
-    if (target.includes('/health?')) throw new Error('not found');
+    if (new URL(target).pathname === '/health') throw new Error('not found');
     return new Response(JSON.stringify({ ok: true, printer_ok: true, version: '2.0' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   };
   try {
