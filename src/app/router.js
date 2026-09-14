@@ -1,4 +1,4 @@
-const ROUTES = Object.freeze(['home','label','manifest','batch','tracking','customers','archive','reconciliation','reports','profiles','settings']);
+const ROUTES = Object.freeze(['home','label','manifest','batch','tracking','customers','archive','claims','reconciliation','reports','profiles','settings']);
 
 export function createRouter(store) {
   function navigate(route) {
