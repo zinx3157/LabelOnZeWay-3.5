@@ -149,8 +149,17 @@ export function createOcrService() {
     const createWorker = module.createWorker || module.default?.createWorker;
     if (typeof createWorker !== 'function') throw new Error('OCR engine failed to load. Check internet access and retry.');
     worker = await createWorker('eng');
-    await worker.setParameters?.({ preserve_interword_spaces: '1', user_defined_dpi: '150', tessedit_pageseg_mode: '6' });
+    if (activeSetParameters(worker)) await worker.setParameters({ preserve_interword_spaces: '1', user_defined_dpi: '150', tessedit_pageseg_mode: '6' });
     return worker;
+  }
+
+  function activeSetParameters(activeWorker) {
+    return typeof activeWorker?.setParameters === 'function';
+  }
+
+  async function setPageMode(activeWorker, mode) {
+    if (!activeSetParameters(activeWorker)) return;
+    await activeWorker.setParameters({ tessedit_pageseg_mode: String(mode) });
   }
 
   async function recognize(image) {
@@ -163,14 +172,14 @@ export function createOcrService() {
     try {
       const rotated = await rotateImage270(image);
       if (rotated) {
-        await activeWorker.setParameters?.({ tessedit_pageseg_mode: '11' });
+        await setPageMode(activeWorker, 11);
         const fallback = await activeWorker.recognize(rotated);
         best = betterResult(best, extractContact(fallback.data?.text || ''));
-        await activeWorker.setParameters?.({ tessedit_pageseg_mode: '6' });
+        await setPageMode(activeWorker, 6);
         return { ...best, scanPass: 'adaptive' };
       }
     } catch {
-      await activeWorker.setParameters?.({ tessedit_pageseg_mode: '6' }).catch?.(() => {});
+      try { await setPageMode(activeWorker, 6); } catch { /* keep primary result */ }
     }
     return { ...best, scanPass: 'primary-low-confidence' };
   }
