@@ -20,16 +20,17 @@ test('bridge health falls back from /health to /api/health', async () => {
   const calls = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url) => {
-    calls.push(String(url));
-    if (String(url).endsWith('/health')) throw new Error('not found');
+    const target = String(url);
+    calls.push(target);
+    if (target === 'http://192.168.100.14:8765/health') throw new Error('not found');
     return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   };
   try {
     const print = createPrintService({ supabase: {}, store: createStore() });
     const result = await print.health();
     assert.equal(result.bridge, 'online');
-    assert.match(calls[0], /\/health$/);
-    assert.match(calls[1], /\/api\/health$/);
+    assert.equal(calls[0], 'http://192.168.100.14:8765/health');
+    assert.equal(calls[1], 'http://192.168.100.14:8765/api/health');
   } finally {
     globalThis.fetch = originalFetch;
   }
