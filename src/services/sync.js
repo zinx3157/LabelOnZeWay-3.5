@@ -1,4 +1,4 @@
-const ENTITY_TYPES = Object.freeze(['customer','parcel_active','parcel_archive','claim']);
+const ENTITY_TYPES = Object.freeze(['customer','parcel_active','parcel_archive','claim','profile_settings_v35']);
 const DEVICE_KEY = 'lz35.deviceId';
 
 function deviceId() {
@@ -27,36 +27,34 @@ export function createSyncService({ supabase, store }) {
       deleted_at: null,
       device_id: sourceDevice,
     });
+    const settings = { id: profileId, ...(state.profileSettings || {}) };
     const rows = [
       ...state.customers.map((item) => row('customer', item)),
       ...state.parcels.map((item) => row('parcel_active', item)),
       ...state.archive.map((item) => row('parcel_archive', item)),
       ...(state.claims || []).map((item) => row('claim', item)),
+      row('profile_settings_v35', settings),
     ];
     store.setState({ sync: { status: 'syncing', conflict: false } });
-    if (rows.length) {
-      const { data, error } = await client.rpc('apply_sync_changes', { p_workspace_id: state.workspace.id, p_changes: rows });
-      if (error) { store.setState({ sync: { status: 'error', conflict: false } }); throw error; }
-      const trackingRows = [
-        ...state.parcels.map((item) => ({ item, archived: false })),
-        ...state.archive.map((item) => ({ item, archived: true })),
-      ].filter(({ item }) => item.trackingToken).map(({ item, archived }) => ({
-        tracking_token: item.trackingToken,
-        workspace_id: state.workspace.id,
-        pick_id: item.pickId,
-        status: item.status || 'ready',
-        archived,
-        updated_at: item.statusUpdatedAt || item.archivedAt || item.modifiedAt || modifiedAt,
-      }));
-      if (trackingRows.length) {
-        const { error: trackingError } = await client.from('public_tracking_v35').upsert(trackingRows, { onConflict: 'tracking_token' });
-        if (trackingError) { store.setState({ sync: { status: 'error', conflict: false } }); throw trackingError; }
-      }
-      store.setState({ sync: { status: 'synced', conflict: false } });
-      return { status: 'synced', records: Number(data ?? rows.length), tracking: trackingRows.length };
+    const { data, error } = await client.rpc('apply_sync_changes', { p_workspace_id: state.workspace.id, p_changes: rows });
+    if (error) { store.setState({ sync: { status: 'error', conflict: false } }); throw error; }
+    const trackingRows = [
+      ...state.parcels.map((item) => ({ item, archived: false })),
+      ...state.archive.map((item) => ({ item, archived: true })),
+    ].filter(({ item }) => item.trackingToken).map(({ item, archived }) => ({
+      tracking_token: item.trackingToken,
+      workspace_id: state.workspace.id,
+      pick_id: item.pickId,
+      status: item.status || 'ready',
+      archived,
+      updated_at: item.statusUpdatedAt || item.archivedAt || item.modifiedAt || modifiedAt,
+    }));
+    if (trackingRows.length) {
+      const { error: trackingError } = await client.from('public_tracking_v35').upsert(trackingRows, { onConflict: 'tracking_token' });
+      if (trackingError) { store.setState({ sync: { status: 'error', conflict: false } }); throw trackingError; }
     }
     store.setState({ sync: { status: 'synced', conflict: false } });
-    return { status: 'synced', records: 0, tracking: 0 };
+    return { status: 'synced', records: Number(data ?? rows.length), tracking: trackingRows.length };
   }
 
   async function pullSnapshot() {
@@ -77,13 +75,15 @@ export function createSyncService({ supabase, store }) {
     const parcels = [];
     const archive = [];
     const claims = [];
+    let profileSettings = state.profileSettings || { name: '', manifestEmail: '' };
     for (const cloudRow of data || []) {
       if (cloudRow.entity_type === 'customer') customers.push(cloudRow.payload);
       if (cloudRow.entity_type === 'parcel_active') parcels.push(cloudRow.payload);
       if (cloudRow.entity_type === 'parcel_archive') archive.push(cloudRow.payload);
       if (cloudRow.entity_type === 'claim') claims.push(cloudRow.payload);
+      if (cloudRow.entity_type === 'profile_settings_v35') profileSettings = cloudRow.payload || profileSettings;
     }
-    store.setState({ customers, parcels, archive, claims, sync: { status: 'synced', conflict: false } });
+    store.setState({ customers, parcels, archive, claims, profileSettings, sync: { status: 'synced', conflict: false } });
     return { status: 'synced', records: (data || []).length };
   }
 
