@@ -1,10 +1,19 @@
 {
   "name": "LabelOnZeWay 3.5",
-  "short_name": "LabelOnZeWay",
-  "start_url": "./",
+  "short_name": "LZWay 3.5",
+  "start_url": "./#/home",
   "scope": "./",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#061015",
   "theme_color": "#061015",
-  "description": "LabelOnZeWay logistics operations workspace"
+  "description": "LabelOnZeWay logistics operations workspace",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }
