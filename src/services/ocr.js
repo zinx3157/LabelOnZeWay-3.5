@@ -43,6 +43,8 @@ function extractAmount(lines = [], phones = []) {
   const phoneSet = new Set(phones.map((item) => item.local));
   const matches = [];
   lines.forEach((line, lineIndex) => {
+    const lineHasPhone = phones.some(({ raw, local }) => line.includes(raw) || normalizePhone(line).includes(local));
+    if (lineHasPhone) return;
     const anchored = AMOUNT_ANCHOR.test(line);
     const hasCurrency = /\bar\b/i.test(line);
     if (OPERATION_WORDS.test(line) && !anchored && !hasCurrency) return;
