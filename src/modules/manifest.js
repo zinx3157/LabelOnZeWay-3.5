@@ -51,7 +51,7 @@ export function createManifestModule({ store }) {
       const table = document.createElement('table');
       const thead = document.createElement('thead');
       const headRow = document.createElement('tr');
-      ['Select','Pick ID','Customer','Qty','Unit','Collect','Status'].forEach((name) => {
+      ['Select','Pick ID','Customer','Qty','Unit','Collect','Status','Actions'].forEach((name) => {
         const th = document.createElement('th');
         th.textContent = name;
         headRow.append(th);
@@ -87,6 +87,32 @@ export function createManifestModule({ store }) {
         pill.textContent = parcel.status;
         statusCell.append(pill);
         row.append(statusCell);
+
+        const actionCell = document.createElement('td');
+        actionCell.dataset.label = 'Actions';
+        const edit = action('Edit label');
+        edit.setAttribute('aria-label', `Edit ${parcel.pickId}`);
+        edit.addEventListener('click', () => {
+          store.update((current) => ({
+            ...current,
+            route: 'label',
+            labelDraft: {
+              step: 1,
+              editParcelId: parcel.id,
+              customerId: parcel.customerId || null,
+              customer: { ...(parcel.customer || { name: '', phone: '', address: '' }) },
+              parcel: {
+                qty: parcel.qty ?? 1,
+                unitPrice: parcel.unitPrice ?? 0,
+                collect: parcel.collect ?? 0,
+                notes: parcel.notes || '',
+              },
+            },
+          }));
+          location.hash = '#/label';
+        });
+        actionCell.append(edit);
+        row.append(actionCell);
         body.append(row);
       }
       table.append(thead, body);
