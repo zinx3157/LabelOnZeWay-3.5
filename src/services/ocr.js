@@ -5,6 +5,7 @@ const ADDRESS_LABEL = /\b(adresse|address|lieu\s+de\s+livraison|delivery\s+addre
 const ADDRESS_CUES = /\b(lot|parcelle|cit[eé]|b\.?p\.?|rue|route|avenue|av\.?|quartier|fokontany|commune|district|village|immeuble|bloc|appartement|apt\.?|akaiky|akaiki|en\s+face|[àa]\s+c[oô]t[eé]|arr[eê]t|pr[eè]s\s+de|chez)\b/i;
 const ADDRESS_CUES_GLOBAL = /\b(lot|parcelle|cit[eé]|b\.?p\.?|rue|route|avenue|av\.?|quartier|fokontany|commune|district|village|immeuble|bloc|appartement|apt\.?|akaiky|akaiki|en\s+face|[àa]\s+c[oô]t[eé]|arr[eê]t|pr[eè]s\s+de|chez)\b/gi;
 const AMOUNT_ANCHOR = /\b(prix|price|collect(?:er)?|[àa]\s*collecter|cod|total|montant)\b/i;
+const AMOUNT_ANCHOR_FUZZY = /\b(?:pr[i1l|]x|pr[i1l|]ce|c[o0]llect(?:er)?|c[o0]d|t[o0]tal|m[o0]ntant)\b/i;
 const SIZE_ANCHOR = /\b(taille|size|pointure)\b/i;
 const LOCATION_HINTS = /\b(antananarivo|tana|madagascar|toamasina|tamatave|antsirabe|fianarantsoa|mahajanga|toliara|diego|antsiranana|nosy\s*be|sambava|fort\s*dauphin)\b/i;
 const MANUFACTURING_NOISE = /\b(made\s+in|fabriqu[eé]\s+(?:au|en)|manufactured\s+in|sri\s+lanka|china|bangladesh|vietnam|india|cambodia|turkey|mauritius|polyester|cotton|coton|viscose|elastane|washing|wash|care|composition|facebook|instagram|whatsapp|www\.|https?:\/\/)\b/i;
@@ -52,38 +53,59 @@ function parseAmountToken(value = '') {
   return Number.isFinite(amount) && amount >= 1000 && amount <= 100000000 ? amount : 0;
 }
 
+function hasAmountAnchor(line = '') {
+  return AMOUNT_ANCHOR.test(line) || AMOUNT_ANCHOR_FUZZY.test(line);
+}
+
+function amountTokens(text = '') {
+  const digit = '[0-9OoQDI|lZzSsBGbgq]';
+  const loose = new RegExp(`(?:${digit}[\\s.,'’\\-]*){4,9}`, 'gi');
+  return (String(text).match(loose) || [])
+    .map((token) => token.trim())
+    .filter((token) => (deconfuseNumeric(token).match(/\d/g) || []).length >= 4);
+}
+
 function extractAmount(lines = [], phones = []) {
   const candidates = [];
   const phoneSet = new Set(phones.map((item) => item.local));
+  const stopLabel = /\b(?:taille|size|pointure|qty|quantit[eé]|tel|phone|ref(?:erence)?|style|sku|code)\b/i;
+
+  const consider = (text, lineIndex, score) => {
+    if (!text) return;
+    for (const token of amountTokens(text)) {
+      const value = parseAmountToken(token);
+      if (!value || phoneSet.has(normalizePhone(token))) continue;
+      const normalizedToken = deconfuseNumeric(token).replace(/[^\d]/g, '');
+      if (normalizedToken.length === 10 && PHONE_PREFIXES.has(normalizedToken.slice(0, 3))) continue;
+      candidates.push({ value, score, lineIndex });
+    }
+  };
+
   lines.forEach((line, lineIndex) => {
     if (phones.some(({ raw, local }) => line.includes(raw) || normalizePhone(line).includes(local))) return;
 
-    const anchorMatch = line.match(/\b(prix|price|collect(?:er)?|[àa]\s*collecter|cod|total|montant)\b/i);
+    const anchored = hasAmountAnchor(line);
     const hasCurrency = /\b(?:ar|mga)\b/i.test(line);
-    if (!anchorMatch && !hasCurrency) return;
 
-    const numeric = '[0-9OoQDI|lZzSsBGbgq]';
-    const grouped = `${numeric}{1,3}(?:[ .,'-]${numeric}{3})+`;
-    const plain = `${numeric}{4,8}`;
-    const amountPattern = new RegExp(`(?:${grouped}|${plain})`, 'gi');
+    if (anchored) {
+      const anchor = line.match(AMOUNT_ANCHOR_FUZZY) || line.match(AMOUNT_ANCHOR);
+      const after = anchor ? line.slice((anchor.index || 0) + anchor[0].length) : line;
+      const sameLine = after.split(stopLabel)[0].slice(0, 48);
+      consider(sameLine, lineIndex, 12 + (hasCurrency ? 3 : 0));
 
-    let searchArea = line;
-    let anchorBoost = 0;
-    if (anchorMatch) {
-      const afterAnchor = line.slice((anchorMatch.index || 0) + anchorMatch[0].length).replace(/^\s*[:=\-]?\s*/, '');
-      const beforeNextLabel = afterAnchor.split(/\b(?:taille|size|pointure|qty|quantit[eé]|tel|phone|ref(?:erence)?)\b/i)[0];
-      searchArea = beforeNextLabel.slice(0, 36);
-      anchorBoost = 8;
+      if (!amountTokens(sameLine).length) {
+        for (let offset = 1; offset <= 2; offset += 1) {
+          const next = lines[lineIndex + offset];
+          if (!next || stopLabel.test(next) || hasAmountAnchor(next)) break;
+          const nextHasCurrency = /\b(?:ar|mga)\b/i.test(next);
+          consider(next.slice(0, 48), lineIndex + offset, 10 - offset + (nextHasCurrency ? 3 : 0));
+          if (amountTokens(next).length) break;
+        }
+      }
+      return;
     }
 
-    const matches = searchArea.match(amountPattern) || [];
-    for (const token of matches) {
-      const value = parseAmountToken(token);
-      if (!value || phoneSet.has(normalizePhone(token))) continue;
-      const tokenCurrency = /\b(?:ar|mga)\b/i.test(searchArea);
-      const score = anchorBoost + (tokenCurrency || hasCurrency ? 4 : 0);
-      if (score >= 4) candidates.push({ value, score, lineIndex });
-    }
+    if (hasCurrency) consider(line.slice(0, 56), lineIndex, 8);
   });
 
   candidates.sort((a, b) => b.score - a.score || a.lineIndex - b.lineIndex);
@@ -227,7 +249,7 @@ export function extractContact(text = '') {
 }
 
 function betterResult(a, b) {
-  const score = (item) => (item.confidence?.overall || 0) + (item.phone ? .12 : 0) + (item.name ? .05 : 0) + (item.address ? .05 : 0) + (item.amount ? .03 : 0) + (item.item?.note ? .02 : 0);
+  const score = (item) => (item.confidence?.overall || 0) + (item.phone ? .12 : 0) + (item.name ? .05 : 0) + (item.address ? .05 : 0) + (item.amount ? .10 : 0) + (item.item?.note ? .02 : 0);
   return score(b) > score(a) ? b : a;
 }
 
@@ -273,7 +295,7 @@ export function createOcrService() {
     const primary = await activeWorker.recognize(image);
     let best = extractContact(primary.data?.text || '');
     const completeContact = best.phone && best.name && best.address;
-    const usefulProduct = best.amount && best.confidence?.amount >= .75 && (best.item?.size || best.item?.brand);
+    const usefulProduct = best.amount && best.confidence?.amount >= .65;
     if (completeContact || usefulProduct || (best.confidence?.overall || 0) >= .72) return { ...best, scanPass: 'primary' };
 
     try {
