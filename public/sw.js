@@ -1,5 +1,46 @@
-const CACHE = 'labelonzeway-3.5-shell-v1';
-const SHELL = ['./','./index.html','./src/main.js','./src/styles/tokens.css','./src/styles/app.css','./src/styles/workflows.css'];
+const CACHE = 'labelonzeway-3.5-shell-v2';
+const SHELL = [
+  './',
+  './index.html',
+  './public/manifest.webmanifest',
+  './public/sync-config.json',
+  './src/main.js',
+  './src/app/bootstrap.js',
+  './src/app/router.js',
+  './src/app/store.js',
+  './src/components/form.js',
+  './src/components/shell.js',
+  './src/components/view.js',
+  './src/domain/escpos.js',
+  './src/domain/ids.js',
+  './src/domain/manifest.js',
+  './src/domain/money.js',
+  './src/domain/tracking.js',
+  './src/modules/archive.js',
+  './src/modules/batch.js',
+  './src/modules/customers.js',
+  './src/modules/home.js',
+  './src/modules/index.js',
+  './src/modules/label.js',
+  './src/modules/manifest.js',
+  './src/modules/profiles.js',
+  './src/modules/reconciliation.js',
+  './src/modules/reports.js',
+  './src/modules/settings.js',
+  './src/modules/tracking.js',
+  './src/services/auth.js',
+  './src/services/index.js',
+  './src/services/messaging.js',
+  './src/services/ocr.js',
+  './src/services/print.js',
+  './src/services/storage.js',
+  './src/services/supabase.js',
+  './src/services/sync.js',
+  './src/services/workspace.js',
+  './src/styles/tokens.css',
+  './src/styles/app.css',
+  './src/styles/workflows.css',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
@@ -15,9 +56,15 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
-  event.respondWith(fetch(event.request).then((response) => {
-    const copy = response.clone();
-    caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+  if (event.request.mode === 'navigate') {
+    event.respondWith(fetch(event.request).catch(() => caches.match('./index.html')));
+    return;
+  }
+  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
+    if (response.ok) {
+      const copy = response.clone();
+      caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+    }
     return response;
-  }).catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html'))));
+  })));
 });
