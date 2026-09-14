@@ -1,4 +1,4 @@
-const CACHE = 'labelonzeway-3.5-shell-v5';
+const CACHE = 'labelonzeway-3.5-shell-v6';
 const SHELL = [
   './',
   './index.html',
@@ -20,6 +20,7 @@ const SHELL = [
   './src/domain/tracking.js',
   './src/modules/archive.js',
   './src/modules/batch.js',
+  './src/modules/claims.js',
   './src/modules/customers.js',
   './src/modules/home.js',
   './src/modules/index.js',
