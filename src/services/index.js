@@ -4,7 +4,7 @@ import { createAuthService } from './auth.js';
 import { createWorkspaceService } from './workspace.js';
 import { createSyncService } from './sync.js';
 import { createPrintService } from './print.js';
-import { createOcrService } from './ocr.js';
+import { createOcrService } from './ocr-image-v2.js';
 import { createMessagingService } from './messaging.js';
 import { createShareService } from './share.js';
 import { createAuditService } from './audit.js';
