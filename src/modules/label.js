@@ -526,14 +526,9 @@ function renderBatchScan({ panel, state, services, store, batchState }) {
       item.selected = true;
       redraw();
     });
-    useSaved.addEventListener('click', () => {
-      syncFields(item, fields);
-      const match = findCustomerMatch(store.getState().customers, item.contact);
-      if (!match) { showResult('No matching saved customer for this row.', 'warning'); return; }
-      item.contact = { name: match.name || '', phone: match.phone || '', address: match.address || '' };
-      item.status = 'review';
-      redraw();
-    });
+    // Address Book selection is handled by batch-customer-picker.js.
+    // Do not run the former exact-match lookup here: an explicit selection is authoritative.
+    useSaved.addEventListener('click', () => {});
     skip.addEventListener('click', () => { item.status = 'skipped'; item.selected = false; redraw(); });
     remove.addEventListener('click', () => {
       if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
