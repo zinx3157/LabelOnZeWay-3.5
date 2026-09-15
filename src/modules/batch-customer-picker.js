@@ -1,14 +1,12 @@
 // Batch Address Book customer picker.
-// Installed as a small independent UI layer so the batch scanner can open the
-// complete approved customer list without disturbing OCR price results.
+// The picker writes directly into the batch row and lets the row's existing
+// input handlers persist the selected customer without touching OCR price data.
 
 function normalize(value = '') {
   return String(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
 }
 
-function findCard(button) {
-  return button.closest('.batch-card');
-}
+function findCard(button) { return button.closest('.batch-card'); }
 
 function fieldsFor(card) {
   if (!card) return null;
@@ -17,20 +15,21 @@ function fieldsFor(card) {
   return { name: byId('batch-name-'), phone: byId('batch-phone-'), address: byId('batch-address-') };
 }
 
-function setInput(node, value) {
-  if (!node) return;
-  node.value = value || '';
-  node.dispatchEvent(new Event('input', { bubbles: true }));
-  node.dispatchEvent(new Event('change', { bubbles: true }));
-}
-
 function customersFromState() {
   try {
-    const store = window.__LABELONZEWAY_STORE__;
-    const state = store?.getState?.();
-    if (Array.isArray(state?.customers)) return state.customers;
-  } catch { /* fallback below */ }
-  return [];
+    const state = window.__LABELONZEWAY_STORE__?.getState?.();
+    return Array.isArray(state?.customers) ? state.customers : [];
+  } catch { return []; }
+}
+
+function applyCustomer(fields, customer) {
+  // Important: dispatch after ALL three values are written. The batch row's
+  // syncFields() reads every control on each input event; dispatching one by
+  // one caused the first redraw to detach the remaining controls.
+  fields.name.value = customer.name || '';
+  fields.phone.value = customer.phone || '';
+  fields.address.value = customer.address || '';
+  fields.address.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 function picker(customers, onPick) {
@@ -40,10 +39,8 @@ function picker(customers, onPick) {
   overlay.setAttribute('aria-modal', 'true');
   overlay.setAttribute('aria-label', 'Address Book');
 
-  const modal = document.createElement('section');
-  modal.className = 'batch-customer-picker';
-  const head = document.createElement('div');
-  head.className = 'batch-customer-picker-head';
+  const modal = document.createElement('section'); modal.className = 'batch-customer-picker';
+  const head = document.createElement('div'); head.className = 'batch-customer-picker-head';
   const title = document.createElement('div');
   const strong = document.createElement('strong'); strong.textContent = 'Address Book';
   const small = document.createElement('small'); small.textContent = `${customers.length} approved customer${customers.length === 1 ? '' : 's'}`;
@@ -52,8 +49,7 @@ function picker(customers, onPick) {
   head.append(title, close);
 
   const search = document.createElement('input');
-  search.type = 'search'; search.placeholder = 'Search name, phone or address…'; search.autocomplete = 'off';
-  search.className = 'batch-customer-picker-search';
+  search.type = 'search'; search.placeholder = 'Search name, phone or address…'; search.autocomplete = 'off'; search.className = 'batch-customer-picker-search';
   const list = document.createElement('div'); list.className = 'batch-customer-picker-list';
 
   function render() {
@@ -85,15 +81,10 @@ function install() {
     const button = event.target.closest?.('button');
     if (!button || !button.closest('.batch-row-actions')) return;
     if (!/^(Use saved customer|Use approved customer)$/i.test(button.textContent.trim())) return;
-    const card = findCard(button); const fields = fieldsFor(card); if (!fields) return;
-    const customers = customersFromState();
-    if (!customers.length) return;
+    const fields = fieldsFor(findCard(button)); if (!fields?.name || !fields?.phone || !fields?.address) return;
+    const customers = customersFromState(); if (!customers.length) return;
     event.preventDefault(); event.stopPropagation();
-    picker(customers, (customer) => {
-      setInput(fields.name, customer.name);
-      setInput(fields.phone, customer.phone);
-      setInput(fields.address, customer.address);
-    });
+    picker(customers, (customer) => applyCustomer(fields, customer));
   }, true);
 }
 
