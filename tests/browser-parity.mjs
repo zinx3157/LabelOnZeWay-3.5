@@ -47,12 +47,12 @@ try {
   await page.locator('input[name="claimPickId"]').fill(pickId);
   await page.locator('textarea[name="claimReason"]').fill('UAT damaged parcel claim');
   await page.getByRole('button', { name: 'Open claim' }).click();
-  assert.match(await page.locator('body').innerText(), /UAT damaged parcel claim/);
+  await page.getByText('UAT damaged parcel claim', { exact: true }).waitFor();
   assert.match(await page.locator('body').innerText(), /open/i);
   await page.getByRole('button', { name: /Resolve claim/ }).click();
-  assert.match(await page.locator('body').innerText(), /resolved/i);
+  await page.getByText(/resolved/i).first().waitFor();
   await page.reload({ waitUntil: 'domcontentloaded' });
-  assert.match(await page.locator('body').innerText(), /UAT damaged parcel claim/);
+  await page.getByText('UAT damaged parcel claim', { exact: true }).waitFor();
   assert.match(await page.locator('body').innerText(), /resolved/i);
 
   const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('labelonzeway.3.5.state.v1')));
