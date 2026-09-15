@@ -2,39 +2,12 @@ import { heading } from '../components/view.js';
 import { reconciliationTotals } from '../domain/manifest.js';
 import { formatAr } from '../domain/money.js';
 
-export function createHomeModule() {
-  return {
-    render(state) {
-      const section = document.createElement('section');
-      section.className = 'screen';
-      section.append(heading('Operations', 'Today at a glance.'));
-      const totals = reconciliationTotals(state.parcels);
-      const statuses = state.parcels.reduce((acc, parcel) => {
-        acc[parcel.status] = (acc[parcel.status] || 0) + 1;
-        return acc;
-      }, {});
-      const grid = document.createElement('div');
-      grid.className = 'metric-grid';
-      const metrics = [
-        ['Active parcels', totals.parcels],
-        ['Ready', statuses.ready || 0],
-        ['In transit', (statuses.dispatch || 0) + (statuses['in-transit'] || 0)],
-        ['Delivery', statuses.delivery || 0],
-        ['Exceptions', statuses.exception || 0],
-        ['Outstanding Collect', `${formatAr(totals.outstandingCollect)} Ar`],
-      ];
-      for (const [label, value] of metrics) {
-        const card = document.createElement('article');
-        card.className = 'metric-card';
-        const name = document.createElement('span');
-        name.textContent = label;
-        const result = document.createElement('strong');
-        result.textContent = String(value);
-        card.append(name, result);
-        grid.append(card);
-      }
-      section.append(grid);
-      return section;
-    },
-  };
-}
+function metric(label,value,detail=''){const card=document.createElement('article');card.className='metric-card';const name=document.createElement('span');name.textContent=label;const result=document.createElement('strong');result.textContent=String(value);card.append(name,result);if(detail){const small=document.createElement('small');small.textContent=detail;card.append(small)}return card}
+export function createHomeModule({store}){return{render(state){
+ const section=document.createElement('section');section.className='screen home-dashboard';section.append(heading('Operations Dashboard','Live view of deliveries, cash, stock and system readiness.'));
+ const parcels=state.parcels||[];const totals=reconciliationTotals(parcels);const statuses=parcels.reduce((a,p)=>{a[p.status]=(a[p.status]||0)+1;return a},{});const inventory=state.inventory||[];const stockUnits=inventory.reduce((s,i)=>s+Number(i.qty||0),0);const low=inventory.filter(i=>Number(i.qty||0)<=Number(i.reorderLevel||0));const stockValue=inventory.reduce((s,i)=>s+Number(i.qty||0)*Number(i.cost||0),0);
+ const ops=document.createElement('div');ops.className='metric-grid dashboard-metrics';[['Active parcels',totals.parcels,'Current manifest'],['Ready',statuses.ready||0,'Awaiting dispatch'],['In transit',(statuses.dispatch||0)+(statuses['in-transit']||0),'On the road'],['Delivered',statuses.delivery||statuses.delivered||0,'Completed'],['Exceptions',statuses.exception||0,'Needs attention'],['Outstanding Collect',`${formatAr(totals.outstandingCollect)} Ar`,'COD remaining']].forEach(x=>ops.append(metric(...x)));section.append(ops);
+ const panels=document.createElement('div');panels.className='dashboard-panels';const stock=document.createElement('article');stock.className='workspace-card dashboard-panel';const sh=document.createElement('h2');sh.textContent='Stock overview';const sg=document.createElement('div');sg.className='dashboard-mini-grid';sg.append(metric('SKUs',inventory.length),metric('Units',stockUnits),metric('Low stock',low.length),metric('Value',`${formatAr(stockValue)} Ar`));const open=document.createElement('button');open.type='button';open.className='button button-primary';open.textContent='Open Stock Management';open.addEventListener('click',()=>{location.hash='#/stock'});stock.append(sh,sg,open);
+ const system=document.createElement('article');system.className='workspace-card dashboard-panel';const syh=document.createElement('h2');syh.textContent='System readiness';const online=document.createElement('p');online.textContent=`Network: ${state.online?'Online':'Offline'}`;const sync=document.createElement('p');sync.textContent=`Operational sync: ${state.sync?.status||'idle'}`;const pending=document.createElement('p');pending.textContent=`Pending sync jobs: ${state.sync?.pending||0}`;const profiles=document.createElement('p');profiles.textContent=`Profiles available: ${(state.profiles||[]).length}`;system.append(syh,online,sync,pending,profiles);
+ const alerts=document.createElement('article');alerts.className='workspace-card dashboard-panel';const ah=document.createElement('h2');ah.textContent='Attention';alerts.append(ah);const items=[];if(statuses.exception)items.push(`${statuses.exception} delivery exception(s)`);if(low.length)items.push(`${low.length} low/out-of-stock SKU(s)`);if((state.claims||[]).some(c=>c.status!=='resolved'))items.push(`${(state.claims||[]).filter(c=>c.status!=='resolved').length} open claim(s)`);if(!items.length)items.push('No operational alerts.');items.forEach(text=>{const p=document.createElement('p');p.textContent=text;alerts.append(p)});panels.append(stock,system,alerts);section.append(panels);return section;
+}}}
