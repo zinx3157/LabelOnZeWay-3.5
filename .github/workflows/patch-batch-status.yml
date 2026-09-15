@@ -1,0 +1,57 @@
+name: Patch batch OCR review status
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-batch-status.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch explicit review statuses
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('src/modules/label.js')
+          s=p.read_text()
+          old="""  function statusFor(item) {
+    if (item.status === 'queued') return ['Queued', ''];
+    if (item.status === 'scanning') return ['Scanning…', 'warning'];
+    if (item.status === 'review') return [complete(item) ? 'Ready to review' : 'Needs details', 'warning'];
+    if (item.status === 'approved') return ['Approved', 'success'];
+    if (item.status === 'created') return ['Created', 'success'];
+    if (item.status === 'error') return ['OCR failed', 'danger'];
+    return ['Skipped', ''];
+  }
+"""
+          new="""  function statusFor(item) {
+    if (item.status === 'queued') return ['Queued', ''];
+    if (item.status === 'scanning') return ['Scanning…', 'warning'];
+    if (item.status === 'review') {
+      const hasPrice = Number(item.unitPrice) > 0;
+      const missing = [];
+      if (!item.contact.name.trim()) missing.push('customer');
+      if (!item.contact.phone.trim() && !item.contact.address.trim()) missing.push('phone/address');
+      if (!hasPrice) missing.push('price');
+      if (hasPrice && !item.contact.name.trim() && !item.contact.phone.trim() && !item.contact.address.trim()) return [`Price detected · ${formatAr(item.unitPrice)} Ar`, 'success'];
+      if (missing.length) return [`Review · ${missing.join(' + ')} missing`, 'warning'];
+      return ['Ready to approve', 'success'];
+    }
+    if (item.status === 'approved') return ['Approved', 'success'];
+    if (item.status === 'created') return ['Created', 'success'];
+    if (item.status === 'error') return ['OCR failed', 'danger'];
+    return ['Skipped', ''];
+  }
+"""
+          if old not in s: raise SystemExit('statusFor target not found')
+          s=s.replace(old,new)
+          p.write_text(s)
+      - name: Commit patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/modules/label.js
+          git commit -m "fix: show explicit OCR price and missing customer statuses"
+          git push
