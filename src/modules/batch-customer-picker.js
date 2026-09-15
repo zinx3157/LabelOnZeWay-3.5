@@ -2,10 +2,22 @@
 // The picker owns customer selection; label.js no longer performs an automatic match.
 function normalize(value = '') { return String(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, ''); }
 function findCard(button) { return button.closest('.batch-card'); }
-function fieldsFor(card) { if (!card) return null; const controls = Array.from(card.querySelectorAll('input, textarea')); const byId = (part) => controls.find((node) => node.id?.includes(part)); return { name: byId('batch-name-'), phone: byId('batch-phone-'), address: byId('batch-address-') }; }
+function fieldsFor(card) {
+  if (!card) return null;
+  // Batch row structure is stable: Customer, Phone, Address, Qty, Unit price, Delivery.
+  // Do not depend on generated input IDs because field() may place the supplied name
+  // in `name` rather than `id`.
+  const controls = Array.from(card.querySelectorAll('.batch-fields-v2 input, .batch-fields-v2 textarea'));
+  const textControls = controls.filter((node) => node.tagName === 'TEXTAREA' || !['checkbox', 'number'].includes(node.type));
+  const name = textControls[0] || controls[0] || null;
+  const phone = textControls.find((node) => node.type === 'tel') || textControls[1] || controls[1] || null;
+  const address = controls.find((node) => node.tagName === 'TEXTAREA') || textControls.find((node) => node !== name && node !== phone) || controls[2] || null;
+  return { name, phone, address };
+}
 function customersFromState() { try { const state = window.__LABELONZEWAY_STORE__?.getState?.(); return Array.isArray(state?.customers) ? state.customers : []; } catch { return []; } }
 function result(message = '', tone = '') { document.querySelectorAll('.batch-result').forEach((node) => { node.textContent = message; node.className = `batch-result ${tone}`.trim(); }); }
-function applyCustomer(fields, customer) { fields.name.value = customer.name || ''; fields.phone.value = customer.phone || ''; fields.address.value = customer.address || ''; fields.address.dispatchEvent(new Event('input', { bubbles: true })); result(`Address Book customer applied · ${customer.name || 'Customer'}`, 'success'); }
+function setField(node, value) { node.value = value || ''; node.dispatchEvent(new Event('input', { bubbles: true })); node.dispatchEvent(new Event('change', { bubbles: true })); }
+function applyCustomer(fields, customer) { setField(fields.name, customer.name); setField(fields.phone, customer.phone); setField(fields.address, customer.address); result(`Address Book customer applied · ${customer.name || 'Customer'}`, 'success'); }
 function picker(customers, onPick) {
   const overlay = document.createElement('div'); overlay.className = 'batch-customer-picker-overlay'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true'); overlay.setAttribute('aria-label', 'Address Book');
   const modal = document.createElement('section'); modal.className = 'batch-customer-picker'; const head = document.createElement('div'); head.className = 'batch-customer-picker-head';
