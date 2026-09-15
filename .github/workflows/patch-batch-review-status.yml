@@ -54,3 +54,4 @@ jobs:
           git add src/modules/label.js sw.js
           git commit -m 'fix: replace vague batch needs-details status'
           git push
+          # triggered
