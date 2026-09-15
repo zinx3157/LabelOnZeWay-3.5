@@ -4,6 +4,7 @@ import { createModules } from '../modules/index.js';
 import { createServices } from '../services/index.js';
 import { createShell } from '../components/shell.js';
 import '../modules/batch-customer-picker.js';
+import { installSingleCustomerPicker } from '../modules/single-customer-picker.js';
 
 export async function bootstrap(root) {
   if (!(root instanceof HTMLElement)) throw new Error('App root is required');
@@ -13,6 +14,7 @@ export async function bootstrap(root) {
   const services = createServices({ store });
   const modules = createModules({ store, services });
   const router = createRouter(store);
+  installSingleCustomerPicker();
 
   const render = () => {
     const state = store.getState();
