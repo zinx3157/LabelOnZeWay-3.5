@@ -1,0 +1,56 @@
+name: Patch batch review status semantics
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/patch-batch-review-status.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Make batch review status explicit
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/modules/label.js')
+          s=p.read_text()
+          old="""  function complete(item) {
+    return !!item.contact.name.trim() && !!(item.contact.phone.trim() || item.contact.address.trim());
+  }
+"""
+          new="""  function complete(item) {
+    return !!item.contact.name.trim() && !!(item.contact.phone.trim() || item.contact.address.trim());
+  }
+
+  function reviewStatus(item) {
+    if (complete(item)) return ['Ready to review', 'warning'];
+    const hasPrice = Number(item.unitPrice) > 0 || Number(item.contact?.amount) > 0;
+    const hasName = !!item.contact.name.trim();
+    const hasPhone = !!item.contact.phone.trim();
+    const hasAddress = !!item.contact.address.trim();
+    if (hasPrice && !hasName && !hasPhone && !hasAddress) return ['Price detected · customer pending', 'warning'];
+    const missing = [];
+    if (!hasName) missing.push('name');
+    if (!hasPhone && !hasAddress) missing.push('phone/address');
+    if (!hasPrice) missing.push('price');
+    return [`Review · ${missing.join(' + ')} missing`, 'warning'];
+  }
+"""
+          if old not in s: raise SystemExit('complete() target not found')
+          s=s.replace(old,new,1)
+          old2="""    if (item.status === 'review') return [complete(item) ? 'Ready to review' : 'Needs details', 'warning'];"""
+          new2="""    if (item.status === 'review') return reviewStatus(item);"""
+          if old2 not in s: raise SystemExit('status target not found')
+          s=s.replace(old2,new2,1)
+          p.write_text(s)
+          p=Path('sw.js')
+          s=p.read_text().replace("labelonzeway-3.5-shell-v22", "labelonzeway-3.5-shell-v23", 1)
+          p.write_text(s)
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/modules/label.js sw.js
+          git commit -m 'fix: replace vague batch needs-details status'
+          git push
