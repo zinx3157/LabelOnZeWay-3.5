@@ -3,11 +3,13 @@ import { createRouter } from './router.js';
 import { createModules } from '../modules/index.js';
 import { createServices } from '../services/index.js';
 import { createShell } from '../components/shell.js';
+import '../modules/batch-customer-picker.js';
 
 export async function bootstrap(root) {
   if (!(root instanceof HTMLElement)) throw new Error('App root is required');
 
   const store = createStore({ online: navigator.onLine });
+  window.__LABELONZEWAY_STORE__ = store;
   const services = createServices({ store });
   const modules = createModules({ store, services });
   const router = createRouter(store);
