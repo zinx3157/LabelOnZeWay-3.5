@@ -1,5 +1,6 @@
 import { field, action } from '../components/form.js';
 import { bytesToBase64 } from '../domain/escpos.js';
+import { renderProfileManager } from './profile-manager.js';
 
 function heading(title, description) {
   const wrap = document.createElement('div');
@@ -24,9 +25,11 @@ export function createSettingsModule({ store, services }) {
     render(state) {
       const section = document.createElement('section');
       section.className = 'screen';
-      section.append(heading('Settings', 'Cloud account, workspace sync and printer status.'));
+      section.append(heading('Settings', 'Company profiles, cloud account, workspace sync and printer status.'));
       const grid = document.createElement('div');
       grid.className = 'settings-grid';
+
+      const profiles = renderProfileManager(state, store);
 
       const cloud = document.createElement('article');
       cloud.className = 'workspace-card';
@@ -184,7 +187,7 @@ export function createSettingsModule({ store, services }) {
 
       printing.append(top, result, quickActions, advanced);
       if (state.ui?.notice) { const notice = document.createElement('div'); notice.className = 'calculation'; notice.textContent = state.ui.notice; section.append(notice); }
-      grid.append(cloud, printing);
+      grid.append(profiles, cloud, printing);
       section.append(grid);
       return section;
     },
