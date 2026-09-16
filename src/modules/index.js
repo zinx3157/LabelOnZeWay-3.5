@@ -10,6 +10,7 @@ import { createSettingsModule } from './settings.js';
 import { createHomeModule } from './home.js';
 import { createReportsModule } from './reports.js';
 import { createProfilesModule } from './profiles.js';
+import { createStockModule } from './stock.js';
 
 export function createModules({ store, services }) {
   return {
@@ -19,6 +20,7 @@ export function createModules({ store, services }) {
     batch: createBatchModule({ store, services }),
     tracking: createTrackingModule({ store, services }),
     customers: createCustomersModule({ store, services }),
+    stock: createStockModule({ store, services }),
     archive: createArchiveModule({ store, services }),
     claims: createClaimsModule({ store, services }),
     reconciliation: createReconciliationModule({ store, services }),
