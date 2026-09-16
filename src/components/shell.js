@@ -1,5 +1,5 @@
 const PRIMARY = [
-  ['home','Home'],['label','New Label'],['manifest','Manifest'],['batch','Batch'],['tracking','Tracking'],['customers','Customers']
+  ['home','Home'],['label','New Label'],['manifest','Manifest'],['batch','Batch'],['tracking','Tracking'],['customers','Customers'],['stock','Stock']
 ];
 const SECONDARY = [
   ['archive','Archive'],['claims','Claims'],['reconciliation','Reconciliation'],['reports','Reports'],['profiles','Profiles'],['settings','Settings']
@@ -25,7 +25,7 @@ export function createShell({ state, navigate, content }) {
   const brandName = document.createElement('strong');
   brandName.textContent = state.workspace?.name || 'LabelOnZeWay';
   const brandVersion = document.createElement('span');
-  brandVersion.textContent = `3.5 · ${state.workspace?.profileId || 'ps_default'}`;
+  brandVersion.textContent = `3.5 · ${state.activeProfileId || state.workspace?.profileId || 'ps_default'}`;
   brand.append(brandName, brandVersion);
   const primary = document.createElement('nav');
   primary.className = 'nav-primary';
@@ -53,7 +53,7 @@ export function createShell({ state, navigate, content }) {
   sync.textContent = `Sync: ${state.sync.status}`;
   const profile = document.createElement('span');
   profile.className = 'status-profile';
-  profile.textContent = `${state.workspace?.name || 'Local'} / ${state.workspace?.profileId || 'ps_default'}`;
+  profile.textContent = `${state.workspace?.name || 'Local'} / ${state.activeProfileId || state.workspace?.profileId || 'ps_default'}`;
   status.append(dot, connectivity, separator, sync, separator.cloneNode(true), profile);
   header.append(status);
   const stage = document.createElement('main');
@@ -62,7 +62,7 @@ export function createShell({ state, navigate, content }) {
   const mobileNav = document.createElement('nav');
   mobileNav.className = 'mobile-nav';
   mobileNav.setAttribute('aria-label','Mobile');
-  [['home','Home'],['label','Label'],['manifest','Manifest'],['customers','Customers'],['settings','More']]
+  [['home','Home'],['label','Label'],['manifest','Manifest'],['stock','Stock'],['settings','More']]
     .forEach(([route,label]) => mobileNav.append(navButton(route,label,state.route,navigate)));
   main.append(header, stage, mobileNav);
   shell.append(sidebar, main);
