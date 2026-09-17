@@ -1,7 +1,7 @@
-# LabelOnZeWay 3.5 — Migration Contract
+# LZWay 3.5 — Migration Contract
 
 ## Baseline
-LabelOnZeWay 2.5.4 remains in the separate `zinx3157/FBP` repository as the protected production/reference baseline. Version 3.5 is rebuilt independently in this repository.
+The 2.5.4 baseline — published under the previous **LabelOnZeWay** brand — remains in the separate `zinx3157/FBP` repository as the protected production/reference baseline. Version 3.5, rebranded **LZWay**, is rebuilt independently in this repository.
 
 ## KEEP — operational capabilities
 - Authentication and user session
@@ -62,4 +62,4 @@ LabelOnZeWay 2.5.4 remains in the separate `zinx3157/FBP` repository as the prot
 No legacy source file is migrated merely because it exists. A capability is migrated only after its behavior, data contract and acceptance test are defined.
 
 ## Production safety
-No 3.5 development commit is to modify the `zinx3157/FBP` repository. Version 2.5.4 remains available until 3.5 passes regression/UAT and is explicitly approved as its replacement.
+No 3.5 development commit is to modify the `zinx3157/FBP` repository. The 2.5.4 baseline remains available until 3.5 passes regression/UAT and is explicitly approved as its replacement.

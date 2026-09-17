@@ -9,7 +9,7 @@ import { installSingleCustomerPicker } from '../modules/single-customer-picker.j
 export async function bootstrap(root) {
   if (!(root instanceof HTMLElement)) throw new Error('App root is required');
   const store = createStore({ online: navigator.onLine });
-  window.__LABELONZEWAY_STORE__ = store;
+  window.__LZWAY_STORE__ = store;
   const services = createServices({ store });
   const modules = createModules({ store, services });
   const router = createRouter(store);

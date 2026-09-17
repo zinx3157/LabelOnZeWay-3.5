@@ -1,4 +1,4 @@
--- LabelOnZeWay 3.5 — migration 0001
+-- LZWay 3.5 — migration 0001
 -- Audit finding SEC-01: stop anonymous enumeration of public_tracking_v35.
 --
 -- Today `anon` can SELECT the whole table with the publishable key, which turns

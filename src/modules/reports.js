@@ -14,7 +14,7 @@ function download(name, type, content) {
 }
 
 function validateBackup(snapshot) {
-  if (!snapshot || String(snapshot.version) !== '3.5') throw new Error('This is not a LabelOnZeWay 3.5 backup.');
+  if (!snapshot || String(snapshot.version) !== '3.5') throw new Error('This is not a LZWay 3.5 backup.');
   for (const key of ['customers','parcels','archive']) {
     if (!Array.isArray(snapshot[key])) throw new Error(`Backup field ${key} is invalid.`);
   }
@@ -52,13 +52,13 @@ export function createReportsModule({ store, services }) {
       exportCsv.addEventListener('click', () => {
         const header = ['Pick ID','Customer','Phone','Address','Qty','Unit Price','Collect','Delivery Charge','Status','Created'];
         const rows = state.parcels.map((parcel) => [parcel.pickId, parcel.customer?.name, parcel.customer?.phone, parcel.customer?.address, parcel.qty, parcel.unitPrice, parcel.collect, parcel.deliveryCharge || 0, parcel.status, parcel.createdAt]);
-        download(`labelonzeway-manifest-${new Date().toISOString().slice(0,10)}.csv`, 'text/csv;charset=utf-8', CSV_BOM + csvDocument([header, ...rows]));
+        download(`lzway-manifest-${new Date().toISOString().slice(0,10)}.csv`, 'text/csv;charset=utf-8', CSV_BOM + csvDocument([header, ...rows]));
       });
 
       const backup = action('Download JSON backup');
       backup.addEventListener('click', () => {
         const snapshot = { version: '3.5', exportedAt: new Date().toISOString(), customers: state.customers, parcels: state.parcels, archive: state.archive, claims: state.claims || [], workspace: state.workspace };
-        download(`labelonzeway-backup-${new Date().toISOString().slice(0,10)}.json`, 'application/json', JSON.stringify(snapshot, null, 2));
+        download(`lzway-backup-${new Date().toISOString().slice(0,10)}.json`, 'application/json', JSON.stringify(snapshot, null, 2));
       });
 
       const restoreInput = document.createElement('input');
@@ -135,7 +135,7 @@ export function createReportsModule({ store, services }) {
         if (!activityItems.length) activityItems = await services.audit.list({ limit: 1000 });
         const header = ['Occurred At','Platform','Device','Profile','Action','Route','Target Type','Target ID','Pending'];
         const rows = activityItems.map((item) => [item.occurred_at,item.platform,item.device_id,item.profile_id,item.action,item.route,item.target_type,item.target_id,item.pending ? 'yes' : 'no']);
-        download(`labelonzeway-activity-${new Date().toISOString().slice(0,10)}.csv`, 'text/csv;charset=utf-8', CSV_BOM + csvDocument([header, ...rows]));
+        download(`lzway-activity-${new Date().toISOString().slice(0,10)}.csv`, 'text/csv;charset=utf-8', CSV_BOM + csvDocument([header, ...rows]));
       });
 
       auditActions.append(load, exportActivity);

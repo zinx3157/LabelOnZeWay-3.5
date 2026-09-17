@@ -6,7 +6,7 @@ export function renderProfileManager(state, store) {
   const title = document.createElement('h2');
   title.textContent = 'Company Profiles';
   const help = document.createElement('p');
-  help.textContent = 'Profiles saved by LabelOnZeWay 2.5.4 on this browser are imported automatically and kept available in 3.5.';
+  help.textContent = 'Profiles saved by the 2.5.4 release on this browser are imported automatically and kept available in 3.5.';
   card.append(title, help);
 
   const profiles = Array.isArray(state.profiles) ? state.profiles : [];

@@ -1,4 +1,8 @@
-const KEY = 'labelonzeway.3.5.state.v1';
+const KEY = 'lzway.3.5.state.v1';
+// Pre-rebrand key (LabelOnZeWay 3.5). Read once so existing installs keep their
+// data; save() mirrors to it until 3.6 so a rollback build still sees updates
+// (production-safety rule in docs/MIGRATION.md).
+const LEGACY_BRAND_KEY = 'labelonzeway.3.5.state.v1';
 const LEGACY_PROFILE_KEYS = ['lzb2.profiles', 'lz.profiles', 'sd.profiles'];
 const LEGACY_ACTIVE_KEYS = ['lzb2.profile', 'lz.profile', 'sd.profile'];
 
@@ -42,7 +46,7 @@ export function createStorageService() {
   return {
     load() {
       try {
-        const raw = localStorage.getItem(KEY);
+        const raw = localStorage.getItem(KEY) || localStorage.getItem(LEGACY_BRAND_KEY);
         const parsed = raw ? safeJson(raw, {}) : {};
         const migrated = legacyProfiles();
         const profiles = mergeProfiles(Array.isArray(parsed.profiles) ? parsed.profiles : [], migrated);
@@ -78,7 +82,9 @@ export function createStorageService() {
         profileSettings: state.profileSettings || { name: '', manifestEmail: '' },
         savedAt: new Date().toISOString(),
       };
-      localStorage.setItem(KEY, JSON.stringify(snapshot));
+      const json = JSON.stringify(snapshot);
+      localStorage.setItem(KEY, json);
+      localStorage.setItem(LEGACY_BRAND_KEY, json);
     },
   };
 }

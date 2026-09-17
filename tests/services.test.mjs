@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createStore } from '../src/app/store.js';
 import { createPrintService } from '../src/services/print.js';
 import { createSyncService } from '../src/services/sync.js';
+import { createStorageService } from '../src/services/storage.js';
 
 function memoryStorage() { const data = new Map(); return { getItem: (key) => data.has(key) ? data.get(key) : null, setItem: (key, value) => data.set(key, String(value)), removeItem: (key) => data.delete(key), clear: () => data.clear() }; }
 globalThis.localStorage = memoryStorage();
@@ -43,4 +44,17 @@ test('sync pull stops before overwriting a newer local record and force pull res
   const sync = createSyncService({ supabase: { connect: async () => pullClient(cloudRows) }, store });
   const blocked = await sync.pullSnapshot(); assert.equal(blocked.status, 'conflict'); assert.equal(blocked.conflicts.length, 1); assert.equal(store.getState().customers[0].name, 'Newer Local'); assert.equal(store.getState().sync.conflict, true);
   const forced = await sync.pullSnapshot({ force: true }); assert.equal(forced.status, 'synced'); assert.equal(store.getState().customers[0].name, 'Older Cloud'); assert.equal(store.getState().sync.conflict, false);
+});
+
+test('Pre-rebrand local state migrates to the LZWay key and stays mirrored', () => {
+  localStorage.clear();
+  const legacy = { customers: [{ id: 'c1', name: 'Legacy Customer' }], parcels: [], archive: [], claims: [] };
+  localStorage.setItem('labelonzeway.3.5.state.v1', JSON.stringify(legacy));
+  const storage = createStorageService();
+  const loaded = storage.load();
+  assert.equal(loaded.customers.length, 1, 'data written by the previous brand must load');
+  assert.equal(loaded.customers[0].name, 'Legacy Customer');
+  storage.save({ ...loaded, customers: loaded.customers });
+  assert.ok(localStorage.getItem('lzway.3.5.state.v1'), 'new key is written');
+  assert.ok(localStorage.getItem('labelonzeway.3.5.state.v1').includes('Legacy Customer'), 'legacy key mirrored for rollback safety');
 });

@@ -16,7 +16,7 @@ function heading(title, description) {
 }
 
 function testReceipt() {
-  const text = '\x1b@LABELONZEWAY\nPOS80C TEST OK\n\n\n\x1dVB\x00';
+  const text = '\x1b@LZWAY\nPOS80C TEST OK\n\n\n\x1dVB\x00';
   return bytesToBase64(new TextEncoder().encode(text));
 }
 

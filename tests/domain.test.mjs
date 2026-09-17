@@ -81,7 +81,7 @@ test('Approved 72mm label ESC/POS contains hierarchy, QR and cut command', () =>
     createdAt: '2026-09-14T17:34:00+03:00',
   }, { trackingUrl: 'https://example.com/?track=trk_test#/tracking' });
   const text = new TextDecoder().decode(bytes);
-  assert.match(text, /LABELONZEWAY/);
+  assert.match(text, /LZWAY/);
   assert.match(text, /PICK\s+QTY/);
   assert.match(text, /140926-1\s+1/);
   assert.match(text, /Nadia Rapanarivo/);

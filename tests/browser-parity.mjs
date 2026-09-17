@@ -36,7 +36,7 @@ try {
   assert.match(await page.locator('table').innerText(), /10\s?000/);
   assert.match(await page.locator('table').innerText(), /1\s?500/);
 
-  const pickId = await page.evaluate(() => JSON.parse(localStorage.getItem('labelonzeway.3.5.state.v1')).parcels[0].pickId);
+  const pickId = await page.evaluate(() => JSON.parse(localStorage.getItem('lzway.3.5.state.v1')).parcels[0].pickId);
   await page.goto(`${BASE}#/reconciliation`, { waitUntil: 'domcontentloaded' });
   const reconciliation = await page.locator('.metric-grid').innerText();
   assert.match(reconciliation, /Merchandise Collect[\s\S]*10\s?000/i);
@@ -55,7 +55,7 @@ try {
   await page.getByText('UAT damaged parcel claim', { exact: true }).waitFor();
   assert.match(await page.locator('body').innerText(), /resolved/i);
 
-  const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('labelonzeway.3.5.state.v1')));
+  const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('lzway.3.5.state.v1')));
   assert.equal(persisted.claims.length, 1);
   assert.equal(persisted.claims[0].status, 'resolved');
   assert.equal(persisted.parcels[0].deliveryCharge, 1500);

@@ -2,7 +2,7 @@ function pdfEscape(value) {
   return String(value ?? '').replaceAll('\\', '\\\\').replaceAll('(', '\\(').replaceAll(')', '\\)').replaceAll(/[^\x20-\x7E]/g, '?');
 }
 
-export function labelPdfBytes(parcel, brand = 'LabelOnZeWay') {
+export function labelPdfBytes(parcel, brand = 'LZWay') {
   const lines = [
     brand,
     `PICK ${parcel.pickId || 'PENDING'}`,

@@ -13,4 +13,4 @@ for (const heading of ['## KEEP', '## REBUILD', '## DROP', '## Production safety
   if (!migration.includes(heading)) throw new Error(`Missing migration section: ${heading}`);
 }
 
-console.log('LabelOnZeWay 3.5 baseline structure: PASS');
+console.log('LZWay 3.5 baseline structure: PASS');

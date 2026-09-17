@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""LabelOnZeWay Cloud Print Worker.
+"""LZWay Cloud Print Worker.
 
-Proven 2.5.4-compatible worker used by LabelOnZeWay 3.5.
+Proven 2.5.4-compatible worker used by LZWay 3.5.
 Consumes authenticated Supabase cloud_print_jobs and forwards ESC/POS bytes to the configured LAN printer.
 """
 from __future__ import annotations
@@ -74,7 +74,7 @@ class CloudPrintWorker:
         self.printer_ip = str(config.get("printer_ip", "192.168.100.73")).strip()
         self.printer_port = int(config.get("printer_port", 9100))
         self.poll_seconds = max(1, min(30, int(config.get("poll_seconds", 2))))
-        self.password_env = str(config.get("password_env", "LABELONZEWAY_CLOUD_PASSWORD"))
+        self.password_env = str(config.get("password_env", "LZWAY_CLOUD_PASSWORD"))
         self.access_token = ""
         self.stop_event = threading.Event()
         if not all([self.url, self.anon_key, self.workspace_id, self.email]):
@@ -161,7 +161,7 @@ def load_config(path: str):
 
 
 def main(argv=None):
-    p = argparse.ArgumentParser(description="LabelOnZeWay 3.5 cloud print worker")
+    p = argparse.ArgumentParser(description="LZWay 3.5 cloud print worker")
     p.add_argument("--config", default="cloud-print-worker.json")
     p.add_argument("--once", action="store_true")
     p.add_argument("--version", action="version", version=VERSION)

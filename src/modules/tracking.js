@@ -65,7 +65,7 @@ function trackingCard(parcel, { readOnly = false, services, store } = {}) {
   remind.addEventListener('click', () => notify('whatsapp', 'reminder'));
   share.addEventListener('click', async () => {
     try {
-      const result = await services.share.shareParcel(parcel, store.getState().workspace?.name || 'LabelOnZeWay');
+      const result = await services.share.shareParcel(parcel, store.getState().workspace?.name || 'LZWay');
       store.setState({ ui: { ...store.getState().ui, notice: result.mode === 'native' ? 'PDF and tracking link shared.' : `PDF downloaded; tracking link: ${result.secureLink}` } });
     } catch (error) {
       if (error?.name !== 'AbortError') store.setState({ ui: { ...store.getState().ui, notice: error.message } });

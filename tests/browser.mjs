@@ -57,7 +57,7 @@ try {
     assert.equal(await page.locator('body script').count(), 1, 'Only the application module script should exist');
 
     const originalIdentity = await page.evaluate(() => {
-      const state = JSON.parse(localStorage.getItem('labelonzeway.3.5.state.v1'));
+      const state = JSON.parse(localStorage.getItem('lzway.3.5.state.v1'));
       return { id: state.parcels[0].id, pickId: state.parcels[0].pickId, trackingToken: state.parcels[0].trackingToken };
     });
 
@@ -71,7 +71,7 @@ try {
     await page.getByRole('button', { name: 'Update label' }).click();
     await page.locator('table').waitFor();
     const editedIdentity = await page.evaluate(() => {
-      const state = JSON.parse(localStorage.getItem('labelonzeway.3.5.state.v1'));
+      const state = JSON.parse(localStorage.getItem('lzway.3.5.state.v1'));
       return { count: state.parcels.length, id: state.parcels[0].id, pickId: state.parcels[0].pickId, trackingToken: state.parcels[0].trackingToken, collect: state.parcels[0].collect };
     });
     assert.equal(editedIdentity.count, 1, `${viewport.name} editing must not duplicate parcel`);
@@ -133,7 +133,7 @@ try {
     const reconciliation = await page.locator('.metric-grid').innerText();
     assert.match(reconciliation, /40\s?000|40000/);
 
-    const snapshot = await page.evaluate(() => JSON.parse(localStorage.getItem('labelonzeway.3.5.state.v1')));
+    const snapshot = await page.evaluate(() => JSON.parse(localStorage.getItem('lzway.3.5.state.v1')));
     const restoreSnapshot = {
       version: '3.5',
       customers: snapshot.customers,
@@ -147,12 +147,12 @@ try {
     await page.getByText(/Restore rejected:/).waitFor();
     await restoreInput.setInputFiles({ name: 'uat-backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(restoreSnapshot)) });
     await page.getByText(/Backup restored:/).waitFor();
-    const restored = await page.evaluate(() => JSON.parse(localStorage.getItem('labelonzeway.3.5.state.v1')));
+    const restored = await page.evaluate(() => JSON.parse(localStorage.getItem('lzway.3.5.state.v1')));
     assert.equal(restored.parcels.length, restoreSnapshot.parcels.length, `${viewport.name} restore parcel parity`);
     assert.equal(restored.parcels[0].collect, 40000, `${viewport.name} restore financial parity`);
 
     await page.evaluate(() => {
-      const key = 'labelonzeway.3.5.state.v1';
+      const key = 'lzway.3.5.state.v1';
       const state = JSON.parse(localStorage.getItem(key));
       state.workspace = { id: 'uat-workspace', name: 'UAT Company', profileId: 'ps_default' };
       localStorage.setItem(key, JSON.stringify(state));

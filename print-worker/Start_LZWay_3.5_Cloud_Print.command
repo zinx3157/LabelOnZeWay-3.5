@@ -7,8 +7,8 @@ if [ ! -f "$CONFIG" ]; then
   echo "Created $CONFIG. Fill workspace_id and email, then run again."
   exit 1
 fi
-if [ -z "${LABELONZEWAY_CLOUD_PASSWORD:-}" ]; then
-  echo "Set LABELONZEWAY_CLOUD_PASSWORD before starting the print worker."
+if [ -z "${LZWAY_CLOUD_PASSWORD:-}" ]; then
+  echo "Set LZWAY_CLOUD_PASSWORD before starting the print worker."
   exit 1
 fi
-exec python3 labelonzeway_cloud_print_worker.py --config "$CONFIG"
+exec python3 lzway_cloud_print_worker.py --config "$CONFIG"

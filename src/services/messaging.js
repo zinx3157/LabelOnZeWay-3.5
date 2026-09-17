@@ -10,8 +10,8 @@ function messageFor(parcel, kind = 'status') {
   const name = parcel.customer?.name || 'Client';
   const pick = parcel.pickId || '';
   const status = String(parcel.status || 'processing').replace('-', ' ');
-  if (kind === 'reminder') return `Bonjour ${name}, rappel LabelOnZeWay pour votre colis ${pick}. Statut: ${status}.`;
-  return `Bonjour ${name}, mise à jour LabelOnZeWay: colis ${pick}, statut ${status}.`;
+  if (kind === 'reminder') return `Bonjour ${name}, rappel LZWay pour votre colis ${pick}. Statut: ${status}.`;
+  return `Bonjour ${name}, mise à jour LZWay: colis ${pick}, statut ${status}.`;
 }
 
 export function createMessagingService() {

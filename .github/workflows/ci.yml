@@ -1,4 +1,4 @@
-name: LabelOnZeWay 3.5 CI
+name: LZWay 3.5 CI
 
 on:
   push:

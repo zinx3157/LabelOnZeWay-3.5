@@ -6,5 +6,5 @@
   "printer_ip": "192.168.100.73",
   "printer_port": 9100,
   "poll_seconds": 2,
-  "password_env": "LABELONZEWAY_CLOUD_PASSWORD"
+  "password_env": "LZWAY_CLOUD_PASSWORD"
 }

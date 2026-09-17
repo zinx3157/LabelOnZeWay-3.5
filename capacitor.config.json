@@ -1,6 +1,6 @@
 {
-  "appId": "com.labelonzeway.app",
-  "appName": "LabelOnZeWay",
+  "appId": "com.lzway.app",
+  "appName": "LZWay",
   "webDir": "www",
   "bundledWebRuntime": false,
   "server": {

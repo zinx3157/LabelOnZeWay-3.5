@@ -8,5 +8,5 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || localSecu
 bootstrap(document.querySelector('#app')).catch((error) => {
   console.error(error);
   const root = document.querySelector('#app');
-  if (root) root.textContent = 'LabelOnZeWay 3.5 failed to start.';
+  if (root) root.textContent = 'LZWay 3.5 failed to start.';
 });

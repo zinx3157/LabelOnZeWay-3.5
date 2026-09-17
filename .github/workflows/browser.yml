@@ -1,4 +1,4 @@
-name: LabelOnZeWay 3.5 Browser Regression
+name: LZWay 3.5 Browser Regression
 
 on:
   push:

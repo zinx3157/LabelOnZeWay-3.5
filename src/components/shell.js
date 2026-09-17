@@ -23,7 +23,7 @@ export function createShell({ state, navigate, content }) {
   const brand = document.createElement('div');
   brand.className = 'brand';
   const brandName = document.createElement('strong');
-  brandName.textContent = state.workspace?.name || 'LabelOnZeWay';
+  brandName.textContent = state.workspace?.name || 'LZWay';
   const brandVersion = document.createElement('span');
   brandVersion.textContent = `3.5 · ${state.activeProfileId || state.workspace?.profileId || 'ps_default'}`;
   brand.append(brandName, brandVersion);

@@ -274,7 +274,7 @@ export function createCustomersModule({ store }) {
         list.replaceChildren(holder);
         showForm(holder);
       });
-      exportButton.addEventListener('click', () => downloadJson('LabelOnZeWay-3.5-AddressBook.json', { version: '3.5', importType: 'customers-only', customers: state.customers.map(({ name, phone, area, address }) => ({ name, phone, area, address })) }));
+      exportButton.addEventListener('click', () => downloadJson('LZWay-3.5-AddressBook.json', { version: '3.5', importType: 'customers-only', customers: state.customers.map(({ name, phone, area, address }) => ({ name, phone, area, address })) }));
       importButton.addEventListener('click', () => importInput.click());
       importInput.addEventListener('change', async () => {
         const file = importInput.files?.[0];

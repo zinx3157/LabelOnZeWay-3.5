@@ -69,7 +69,7 @@ function findCustomerMatch(customers, contact) {
 
 function hashSeed(value) {
   let hash = 2166136261;
-  for (const char of String(value || 'LabelOnZeWay')) {
+  for (const char of String(value || 'LZWay')) {
     hash ^= char.charCodeAt(0);
     hash = Math.imul(hash, 16777619);
   }
@@ -114,7 +114,7 @@ function labelPreview(draft, state) {
   const brand = el('div', 'thermal-brand');
   const logo = el('div', 'thermal-logo', 'LZ');
   const brandCopy = el('div', 'thermal-brand-copy');
-  brandCopy.append(el('strong', '', 'LabelOnZeWay'), el('span', '', 'Ship Smarter. Deliver Further.'));
+  brandCopy.append(el('strong', '', 'LZWay'), el('span', '', 'Ship Smarter. Deliver Further.'));
   brand.append(logo, brandCopy);
   const stamp = el('div', 'thermal-stamp');
   stamp.append(el('strong', '', previewTime(now)));
@@ -146,7 +146,7 @@ function labelPreview(draft, state) {
   const delivery = el('div', 'thermal-delivery');
   delivery.append(el('span', '', 'LIVRAISON PRÉVUE'), el('strong', '', tomorrow(now)));
   const footer = el('div', 'thermal-footer');
-  footer.append(el('strong', '', 'Misaotra betsaka ! Merci pour votre confiance !'), el('small', '', 'LABELONZEWAY | PEOPLE. PARCELS. PROGRESS.'));
+  footer.append(el('strong', '', 'Misaotra betsaka ! Merci pour votre confiance !'), el('small', '', 'LZWAY | PEOPLE. PARCELS. PROGRESS.'));
   preview.append(header, pickRow, recipient, collect, delivery);
   if (draft.parcel.notes) preview.append(el('div', 'thermal-notes', draft.parcel.notes));
   preview.append(footer);

@@ -23,7 +23,7 @@ export function installSingleCustomerPicker() {
     if (!(target instanceof HTMLElement)) return;
     const fields = singleCustomerFields(target);
     if (!fields || target !== fields.name) return;
-    const customers = window.__LABELONZEWAY_STORE__?.getState?.().customers || [];
+    const customers = window.__LZWAY_STORE__?.getState?.().customers || [];
     if (!customers.length) return;
     openCustomerPicker(customers, (customer) => apply(fields, customer), { title: 'Existing Customers' });
   });

@@ -10,7 +10,7 @@ function fieldsFor(card) {
   const address = controls.find((node) => node.tagName === 'TEXTAREA') || textControls.find((node) => node !== name && node !== phone) || controls[2] || null;
   return { name, phone, address };
 }
-function customersFromState() { try { const state = window.__LABELONZEWAY_STORE__?.getState?.(); return Array.isArray(state?.customers) ? state.customers : []; } catch { return []; } }
+function customersFromState() { try { const state = window.__LZWAY_STORE__?.getState?.(); return Array.isArray(state?.customers) ? state.customers : []; } catch { return []; } }
 function result(message = '', tone = '') { document.querySelectorAll('.batch-result').forEach((node) => { node.textContent = message; node.className = `batch-result ${tone}`.trim(); }); }
 function setField(node, value) { node.value = value || ''; node.dispatchEvent(new Event('input', { bubbles: true })); node.dispatchEvent(new Event('change', { bubbles: true })); }
 function applyCustomer(fields, customer) { setField(fields.name, customer.name); setField(fields.phone, customer.phone); setField(fields.address, customer.address); result(`Address Book customer applied · ${customer.name || 'Customer'}`, 'success'); }

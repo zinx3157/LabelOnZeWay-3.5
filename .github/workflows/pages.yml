@@ -1,4 +1,4 @@
-name: Deploy LabelOnZeWay 3.5 UAT
+name: Deploy LZWay 3.5 UAT
 
 on:
   push:

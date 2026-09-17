@@ -1,4 +1,4 @@
-# LabelOnZeWay 3.5 — UAT Acceptance Matrix
+# LZWay 3.5 — UAT Acceptance Matrix
 
 Automated acceptance is recorded only where exercised on the exact release code. Physical hardware/device checks remain manual gates.
 
@@ -29,7 +29,7 @@ Automated acceptance is recorded only where exercised on the exact release code.
 - [x] Supabase UAT host repinned and ACTIVE on exact commit 38fd3c2a33eff9a87523c7530de10bfd9127af5c
 - [x] Reproducible Capacitor Android wrapper workflow
 - [x] Android debug APK built successfully in GitHub Actions
-- [x] APK artifact: LabelOnZeWay-3.5-Android-UAT, SHA-256 0101c872571f6a74dd96795ed249a7ea4be323e7ba01f5ec02c54c7f15e268d9
+- [x] APK artifact: LZWay-3.5-Android-UAT, SHA-256 0101c872571f6a74dd96795ed249a7ea4be323e7ba01f5ec02c54c7f15e268d9
 
 ## Physical / external gates still required
 - [ ] Real Supabase sign-in/session lifecycle with the operator account
@@ -45,4 +45,4 @@ Automated acceptance is recorded only where exercised on the exact release code.
 - [ ] GitHub Pages repository-level enablement (current GitHub integration lacks administration permission)
 
 ## Release rule
-Production approval requires all machine-testable gates green on one exact code commit plus physical execution of the remaining device/equipment gates. LabelOnZeWay 2.5.4 remains untouched and available as rollback until explicit 3.5 production approval.
+Production approval requires all machine-testable gates green on one exact code commit plus physical execution of the remaining device/equipment gates. The 2.5.4 baseline (previous brand) remains untouched and available as rollback until explicit 3.5 production approval.

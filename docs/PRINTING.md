@@ -1,4 +1,4 @@
-# LabelOnZeWay 3.5 Printing
+# LZWay 3.5 Printing
 
 One print service owns all print submission.
 

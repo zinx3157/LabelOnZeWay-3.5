@@ -17,7 +17,7 @@ function downloadFile(file) {
 }
 
 export function createShareService() {
-  async function shareParcel(parcel, brand = 'LabelOnZeWay') {
+  async function shareParcel(parcel, brand = 'LZWay') {
     if (!parcel?.trackingToken) throw new Error('Tracking token is missing');
     const file = new File([labelPdfBytes(parcel, brand)], `${parcel.pickId || 'label'}.pdf`, { type: 'application/pdf' });
     const secureLink = trackingUrl(parcel.trackingToken);
