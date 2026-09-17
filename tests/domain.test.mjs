@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { calculateCollect } from '../src/domain/money.js';
 import { makePickId } from '../src/domain/ids.js';
-import { PARCEL_STATUSES, reconciliationTotals, updateParcelStatuses } from '../src/domain/manifest.js';
+import { PARCEL_STATUSES, parcelStatusCounts, reconciliationTotals, updateParcelStatuses } from '../src/domain/manifest.js';
+import { CSV_BOM, csvDocument, csvEscape } from '../src/domain/csv.js';
 import { bytesToBase64, labelEscPos, manifestEscPos } from '../src/domain/escpos.js';
 import { labelPdfBytes } from '../src/domain/pdf.js';
 import { extractContact } from '../src/services/ocr.js';
@@ -116,4 +117,49 @@ test('Repeated status/reconciliation loop remains deterministic', () => {
     assert.equal(totals.deliveryRevenue, 500);
     assert.equal(totals.totalReceivable, 5500);
   }
+});
+
+test('Pick IDs never restart when parcels leave the active manifest', () => {
+  const now = new Date('2026-09-15T10:00:00Z');
+  const active = [];
+  for (let i = 0; i < 3; i += 1) active.push({ id: `p${i}`, pickId: makePickId(active, now) });
+  assert.deepEqual(active.map((item) => item.pickId), ['150926-1', '150926-2', '150926-3']);
+  // "Close delivered": the three move to the archive and the manifest empties.
+  assert.equal(makePickId([[], active], now), '150926-4', 'archive must count towards the sequence');
+  assert.equal(makePickId(active, now), '150926-4', 'a flat archive array behaves the same');
+});
+
+test('Pick ID generation skips sequence numbers already taken', () => {
+  const now = new Date('2026-09-15T10:00:00Z');
+  // count would offer -2, which is taken, so it must advance to -3
+  assert.equal(makePickId([{ pickId: '150926-2' }], now), '150926-3');
+  assert.equal(makePickId([{ pickId: '150926-1' }, { pickId: '150926-2' }], now), '150926-3');
+});
+
+test('Status counts cover every operational status exactly once', () => {
+  const parcels = [
+    { status: 'ready' }, { status: 'ready' }, { status: 'dispatch' }, { status: 'in-transit' },
+    { status: 'delivery' }, { status: 'delivery' }, { status: 'delivery' },
+    { status: 'delivered' }, { status: 'delivered' }, { status: 'delivered' }, { status: 'delivered' },
+    { status: 'delivered' }, { status: 'delivered' }, { status: 'delivered' }, { status: 'exception' },
+  ];
+  const counts = parcelStatusCounts(parcels);
+  assert.equal(counts.ready, 2);
+  assert.equal(counts.dispatch + counts['in-transit'], 2);
+  assert.equal(counts.delivery, 3);
+  assert.equal(counts.delivered, 7, 'delivered must not fall back to the out-for-delivery count');
+  assert.equal(counts.exception, 1);
+  assert.equal(parcelStatusCounts([{ status: 'lost-in-space' }]).delivered, 0);
+});
+
+test('CSV export neutralises formula triggers and preserves quoting', () => {
+  assert.equal(csvEscape('Rakoto'), '"Rakoto"');
+  assert.equal(csvEscape('say "hi"'), '"say ""hi"""');
+  assert.equal(csvEscape(''), '""');
+  assert.equal(csvEscape('=1+1'), '"\'=1+1"');
+  assert.equal(csvEscape('+CMD'), '"\'+CMD"');
+  assert.equal(csvEscape('-500'), '"\'-500"');
+  assert.equal(csvEscape('@SUM(A1)'), '"\'@SUM(A1)"');
+  assert.equal(CSV_BOM + csvDocument([['Pick', 'Customer'], ['150926-1', '=HYPERLINK("http://x")']]),
+    '\uFEFF"Pick","Customer"\n"150926-1","\'=HYPERLINK(""http://x"")"');
 });

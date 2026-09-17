@@ -24,8 +24,8 @@ function el(tag, className, text = '') {
 }
 
 function previewPickId(state, draft) {
-  if (draft.editParcelId) return state.parcels.find((item) => item.id === draft.editParcelId)?.pickId || makePickId(state.parcels);
-  return makePickId(state.parcels);
+  if (draft.editParcelId) return state.parcels.find((item) => item.id === draft.editParcelId)?.pickId || makePickId([state.parcels, state.archive]);
+  return makePickId([state.parcels, state.archive]);
 }
 
 function previewDate(date = new Date()) {
@@ -289,7 +289,7 @@ function buildBatchParcel(item, current, customers, parcels) {
   }
   const parcel = {
     id: makeId('parcel'),
-    pickId: makePickId(parcels),
+    pickId: makePickId([parcels, current.archive]),
     trackingToken: makeTrackingToken(),
     customerId,
     customer: { name: item.contact.name.trim(), phone: item.contact.phone.trim(), address: item.contact.address.trim() },
@@ -801,7 +801,7 @@ export function createLabelModule({ store, services }) {
           return {
             ...(existing || {}),
             id: existing?.id || makeId('parcel'),
-            pickId: existing?.pickId || makePickId(current.parcels),
+            pickId: existing?.pickId || makePickId([current.parcels, current.archive]),
             trackingToken: existing?.trackingToken || makeTrackingToken(),
             customerId: current.labelDraft.customerId,
             customer: current.labelDraft.customer,

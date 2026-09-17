@@ -1,4 +1,5 @@
 import { heading } from '../components/view.js';
+import { CSV_BOM, csvDocument } from '../domain/csv.js';
 import { action } from '../components/form.js';
 import { formatAr } from '../domain/money.js';
 
@@ -10,11 +11,6 @@ function download(name, type, content) {
   link.download = name;
   link.click();
   URL.revokeObjectURL(url);
-}
-
-function csvEscape(value) {
-  const text = String(value ?? '');
-  return `"${text.replaceAll('"', '""')}"`;
 }
 
 function validateBackup(snapshot) {
@@ -56,7 +52,7 @@ export function createReportsModule({ store, services }) {
       exportCsv.addEventListener('click', () => {
         const header = ['Pick ID','Customer','Phone','Address','Qty','Unit Price','Collect','Delivery Charge','Status','Created'];
         const rows = state.parcels.map((parcel) => [parcel.pickId, parcel.customer?.name, parcel.customer?.phone, parcel.customer?.address, parcel.qty, parcel.unitPrice, parcel.collect, parcel.deliveryCharge || 0, parcel.status, parcel.createdAt]);
-        download(`labelonzeway-manifest-${new Date().toISOString().slice(0,10)}.csv`, 'text/csv;charset=utf-8', [header, ...rows].map((row) => row.map(csvEscape).join(',')).join('\n'));
+        download(`labelonzeway-manifest-${new Date().toISOString().slice(0,10)}.csv`, 'text/csv;charset=utf-8', CSV_BOM + csvDocument([header, ...rows]));
       });
 
       const backup = action('Download JSON backup');
@@ -139,7 +135,7 @@ export function createReportsModule({ store, services }) {
         if (!activityItems.length) activityItems = await services.audit.list({ limit: 1000 });
         const header = ['Occurred At','Platform','Device','Profile','Action','Route','Target Type','Target ID','Pending'];
         const rows = activityItems.map((item) => [item.occurred_at,item.platform,item.device_id,item.profile_id,item.action,item.route,item.target_type,item.target_id,item.pending ? 'yes' : 'no']);
-        download(`labelonzeway-activity-${new Date().toISOString().slice(0,10)}.csv`, 'text/csv;charset=utf-8', [header, ...rows].map((r) => r.map(csvEscape).join(',')).join('\n'));
+        download(`labelonzeway-activity-${new Date().toISOString().slice(0,10)}.csv`, 'text/csv;charset=utf-8', CSV_BOM + csvDocument([header, ...rows]));
       });
 
       auditActions.append(load, exportActivity);

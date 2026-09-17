@@ -8,6 +8,15 @@ export function updateParcelStatuses(parcels, ids, status) {
   return parcels.map((parcel) => selected.has(parcel.id) ? { ...parcel, status, statusUpdatedAt: new Date().toISOString() } : parcel);
 }
 
+export function parcelStatusCounts(parcels) {
+  const counts = {};
+  for (const status of PARCEL_STATUSES) counts[status] = 0;
+  for (const parcel of parcels || []) {
+    if (Object.hasOwn(counts, parcel.status)) counts[parcel.status] += 1;
+  }
+  return counts;
+}
+
 export function reconciliationTotals(parcels) {
   return parcels.reduce((totals, parcel) => {
     const collect = asNumber(parcel.collect);

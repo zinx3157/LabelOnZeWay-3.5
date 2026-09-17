@@ -1,5 +1,5 @@
 import { heading } from '../components/view.js';
-import { reconciliationTotals } from '../domain/manifest.js';
+import { parcelStatusCounts, reconciliationTotals } from '../domain/manifest.js';
 import { formatAr } from '../domain/money.js';
 
 function card(label, value) {
@@ -20,17 +20,16 @@ export function createHomeModule({ store }) {
       section.className = 'screen';
       section.append(heading('Operations Dashboard', 'Parcels, collections, stock and system readiness.'));
       const totals = reconciliationTotals(state.parcels);
-      const statuses = state.parcels.reduce((acc, parcel) => {
-        acc[parcel.status] = (acc[parcel.status] || 0) + 1;
-        return acc;
-      }, {});
+      // DASH-01: canonical counts (every status key present, delivery never merged into delivered)
+      const statuses = parcelStatusCounts(state.parcels);
       const grid = document.createElement('div');
       grid.className = 'metric-grid';
       const metrics = [
         ['Active parcels', totals.parcels],
         ['Ready', statuses.ready || 0],
         ['In transit', (statuses.dispatch || 0) + (statuses['in-transit'] || 0)],
-        ['Delivered', (statuses.delivery || 0) + (statuses.delivered || 0)],
+        ['Out for delivery', statuses.delivery || 0],
+        ['Delivered', statuses.delivered || 0],
         ['Exceptions', statuses.exception || 0],
         ['Outstanding Collect', `${formatAr(totals.outstandingCollect)} Ar`],
       ];
