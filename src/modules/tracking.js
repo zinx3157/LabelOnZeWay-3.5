@@ -9,6 +9,22 @@ function publicTrackingUrl(token) {
   return url.toString();
 }
 
+async function lookupPublicTracking(supabase, token) {
+  const client = await supabase.connect();
+  // Preferred path: single-row SECURITY DEFINER lookup (docs/migrations/0001).
+  try {
+    const { data, error } = await client.rpc('tracking_lookup', { p_token: token });
+    if (!error) return Array.isArray(data) ? (data[0] || null) : (data || null);
+  } catch { /* function not deployed on this project yet */ }
+  // Fallback until the migration is applied: direct table query.
+  const { data, error } = await client.from('public_tracking_v35')
+    .select('pick_id,status,archived,updated_at')
+    .eq('tracking_token', token)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 function findByTracking(state, query) {
   const needle = String(query || '').trim().toLowerCase();
   if (!needle) return null;
@@ -89,12 +105,7 @@ export function createTrackingModule({ services, store }) {
         section.append(status);
         (async () => {
           try {
-            const client = await services.supabase.connect();
-            const { data, error } = await client.from('public_tracking_v35')
-              .select('pick_id,status,archived,updated_at')
-              .eq('tracking_token', publicToken)
-              .maybeSingle();
-            if (error) throw error;
+            const data = await lookupPublicTracking(services.supabase, publicToken);
             if (!data) {
               status.textContent = 'Tracking ID not found.';
               return;
