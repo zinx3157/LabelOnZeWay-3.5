@@ -38,6 +38,18 @@
 .customer-filter-chips { display: flex; gap: .5rem; flex-wrap: wrap; }
 .customer-filter-chip { border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); color: var(--muted); padding: .42rem .72rem; cursor: pointer; font-size: .82rem; }
 .customer-filter-chip:hover,.customer-filter-chip.is-active { border-color: rgba(82,226,188,.55); color: var(--text); background: rgba(82,226,188,.11); }
+
+/* Reflow guard: at narrow widths (or large text scaling) the fixed 280px search
+   column plus three action buttons overflowed the viewport. Let the bar wrap. */
+@media (max-width: 640px) {
+  .customers-topbar { display: flex; flex-wrap: wrap; align-items: center; }
+  .customers-topbar .customers-search { flex: 1 1 100%; }
+  .customers-topbar .button { flex: 1 1 auto; }
+  .customers-title-row { flex-wrap: wrap; gap: .5rem; }
+  .customers-sort-wrap { flex: 1 1 auto; }
+  .customers-sort { min-width: 0; flex: 1 1 auto; }
+  .customers-footer { grid-template-columns: 1fr auto; }
+}
 .customer-directory { display: grid; gap: .5rem; }
 .customer-row { display: grid; grid-template-columns: 28px 46px minmax(190px,1.05fr) minmax(240px,1.35fr) auto; gap: .85rem; align-items: center; padding: .75rem .9rem; border: 1px solid var(--border); border-radius: calc(var(--radius) - 2px); background: linear-gradient(180deg,rgba(14,31,39,.97),rgba(10,24,31,.97)); box-shadow: 0 7px 20px rgba(0,0,0,.12); min-width: 0; }
 .customer-row:hover { border-color: rgba(82,226,188,.3); background: linear-gradient(180deg,rgba(16,35,43,.99),rgba(11,27,34,.99)); }

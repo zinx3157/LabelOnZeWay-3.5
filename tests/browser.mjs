@@ -108,6 +108,7 @@ try {
     const publicBase = new URL(BASE);
     publicBase.searchParams.set('track', originalIdentity.trackingToken);
     await page.goto(`${publicBase.toString()}#/tracking`, { waitUntil: 'domcontentloaded' });
+    await page.locator('.screen').waitFor();
     assert.match(await page.locator('body').innerText(), /Shipment Tracking/);
     assert.match(await page.locator('body').innerText(), /delivered/i);
     assert.equal(await page.getByRole('button', { name: 'WhatsApp' }).count(), 0, 'Public tracking must be read-only');
