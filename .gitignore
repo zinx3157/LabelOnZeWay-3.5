@@ -1,0 +1,8 @@
+node_modules/
+package-lock.json
+www/
+dist/
+android/
+ios/
+.DS_Store
+print-worker/cloud-print-worker.json
