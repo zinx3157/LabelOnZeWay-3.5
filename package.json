@@ -4,10 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node scripts/check-structure.mjs && node scripts/check-architecture.mjs",
+    "check": "node scripts/check-structure.mjs && node scripts/check-architecture.mjs && node scripts/check-release.mjs",
     "test:domain": "node --test tests/*.test.mjs",
     "test": "npm run check && npm run test:domain",
-    "prepare:android": "rm -rf www && mkdir -p www && cp index.html sw.js www/ && cp -R src public www/"
+    "prepare:android": "rm -rf www && mkdir -p www && cp index.html sw.js www/ && cp -R src public www/",
+    "build:site": "rm -rf dist && mkdir -p dist && cp index.html sw.js dist/ && cp -R src public dist/"
   },
   "dependencies": {
     "@capacitor/android": "6.2.0",
