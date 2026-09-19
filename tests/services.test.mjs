@@ -67,3 +67,53 @@ test('messaging keeps the exact LZWay copy for reminder and status defaults', ()
   assert.equal(messaging.messageFor(parcel, 'reminder'), 'Bonjour Soa, rappel LZWay pour votre colis 180926-1. Statut: out for-delivery.');
   assert.equal(messaging.messageFor(parcel), 'Bonjour Soa, mise à jour LZWay: colis 180926-1, statut out for-delivery.');
 });
+
+
+test('sync pull records the device registry and rich conflict payloads', async () => {
+  localStorage.clear(); localStorage.setItem('lz35.deviceId', 'dev-local');
+  const cloudRows = [
+    { entity_type: 'customer', entity_id: 'c1', payload: { id: 'c1', name: 'Cloud Name', modifiedAt: '2026-09-17T10:00:00Z' }, modified_at: '2026-09-17T10:00:00Z', device_id: 'dev-other' },
+    { entity_type: 'customer', entity_id: 'c2', payload: { id: 'c2', name: 'Fresh', modifiedAt: '2026-09-17T09:00:00Z' }, modified_at: '2026-09-17T09:00:00Z', device_id: 'dev-third' },
+  ];
+  const store = createStore({ session: { user: { id: 'u' } }, workspace: { id: 'w', profileId: 'ps_default' }, customers: [{ id: 'c1', name: 'Local Newer', modifiedAt: '2026-09-18T10:00:00Z' }] });
+  const sync = createSyncService({ supabase: { connect: async () => pullClient(cloudRows) }, store });
+  const blocked = await sync.pullSnapshot();
+  assert.equal(blocked.status, 'conflict');
+  assert.equal(blocked.conflicts.length, 1);
+  assert.equal(blocked.conflicts[0].cloudPayload.name, 'Cloud Name');
+  assert.equal(blocked.conflicts[0].localPayload.name, 'Local Newer');
+  assert.deepEqual(store.getState().sync.devices.map((device) => device.id).sort(), ['dev-other', 'dev-third']);
+  const resolved = await sync.resolveConflicts([{ entityType: 'customer', entityId: 'c1', choice: 'cloud' }]);
+  assert.equal(resolved.cloud, 1);
+  const after = store.getState();
+  assert.equal(after.customers.find((item) => item.id === 'c1').name, 'Cloud Name');
+  assert.equal(after.sync.conflict, false);
+  const merged = await sync.pullSnapshot();
+  assert.equal(merged.status, 'synced');
+  const finalCustomers = store.getState().customers;
+  assert.ok(finalCustomers.find((item) => item.id === 'c2'), 'non-conflicting cloud record merges on the next pull');
+  assert.equal(finalCustomers.find((item) => item.id === 'c1').name, 'Cloud Name');
+});
+
+
+test('keep-local resolution marks the record so the next pull merges instead of re-flagging', async () => {
+  localStorage.clear(); localStorage.setItem('lz35.deviceId', 'dev-local');
+  const cloudRows = [{ entity_type: 'customer', entity_id: 'c1', payload: { id: 'c1', name: 'Cloud', modifiedAt: '2026-09-17T10:00:00Z' }, modified_at: '2026-09-17T10:00:00Z', device_id: 'dev-other' }];
+  const store = createStore({ session: { user: { id: 'u' } }, workspace: { id: 'w', profileId: 'ps_default' }, customers: [{ id: 'c1', name: 'Local', modifiedAt: '2026-09-18T10:00:00Z' }] });
+  const sync = createSyncService({ supabase: { connect: async () => pullClient(cloudRows) }, store });
+  await sync.pullSnapshot();
+  const resolved = await sync.resolveConflicts([{ entityType: 'customer', entityId: 'c1', choice: 'local' }]);
+  assert.equal(resolved.local, 1);
+  assert.equal(store.getState().customers[0].name, 'Local');
+  assert.ok(store.getState().customers[0].syncKeepLocalAt, 'keep-local marker recorded');
+  const second = await sync.pullSnapshot();
+  assert.equal(second.status, 'synced');
+});
+
+
+test('pendingChanges lists records modified since the last successful sync', () => {
+  const store = createStore({ session: { user: { id: 'u' } }, workspace: { id: 'w', profileId: 'ps_default' }, customers: [{ id: 'c1', name: 'A', modifiedAt: '2026-09-18T10:00:00Z' }], sync: { status: 'synced', conflict: false, lastSuccess: '2026-09-18T09:00:00Z' } });
+  const sync = createSyncService({ supabase: { connect: async () => pullClient([]) }, store });
+  const changes = sync.pendingChanges();
+  assert.ok(changes.some((change) => change.type === 'customer' && change.id === 'c1' && change.label === 'A'));
+});

@@ -19,6 +19,9 @@ function validateBackup(snapshot) {
     if (!Array.isArray(snapshot[key])) throw new Error(`Backup field ${key} is invalid.`);
   }
   if (snapshot.claims != null && !Array.isArray(snapshot.claims)) throw new Error('Backup field claims is invalid.');
+  for (const key of ['settlements','inventory','stockMovements']) {
+    if (snapshot[key] != null && !Array.isArray(snapshot[key])) throw new Error(`Backup field ${key} is invalid.`);
+  }
   return snapshot;
 }
 
@@ -57,7 +60,7 @@ export function createReportsModule({ store, services }) {
 
       const backup = action('Download JSON backup');
       backup.addEventListener('click', () => {
-        const snapshot = { version: '3.5', exportedAt: new Date().toISOString(), customers: state.customers, parcels: state.parcels, archive: state.archive, claims: state.claims || [], workspace: state.workspace };
+        const snapshot = { version: '3.5', exportedAt: new Date().toISOString(), customers: state.customers, parcels: state.parcels, archive: state.archive, claims: state.claims || [], settlements: state.settlements || [], inventory: state.inventory || [], stockMovements: state.stockMovements || [], workspace: state.workspace };
         download(`lzway-backup-${new Date().toISOString().slice(0,10)}.json`, 'application/json', JSON.stringify(snapshot, null, 2));
       });
 
@@ -75,9 +78,9 @@ export function createReportsModule({ store, services }) {
         restoreInput.value = '';
         try {
           const snapshot = validateBackup(JSON.parse(await file.text()));
-          restoreMessage = `Backup restored: ${snapshot.parcels.length} active parcels, ${snapshot.archive.length} archived, ${(snapshot.claims || []).length} claims.`;
+          restoreMessage = `Backup restored: ${snapshot.parcels.length} active parcels, ${snapshot.archive.length} archived, ${(snapshot.claims || []).length} claims, ${(snapshot.settlements || []).length} settlements.`;
           services.audit.record('backup.restore', { active: snapshot.parcels.length, archived: snapshot.archive.length, claims: (snapshot.claims || []).length });
-          store.setState({ customers: snapshot.customers, parcels: snapshot.parcels, archive: snapshot.archive, claims: snapshot.claims || [], workspace: snapshot.workspace || state.workspace });
+          store.setState({ customers: snapshot.customers, parcels: snapshot.parcels, archive: snapshot.archive, claims: snapshot.claims || [], settlements: Array.isArray(snapshot.settlements) ? snapshot.settlements : (state.settlements || []), inventory: Array.isArray(snapshot.inventory) ? snapshot.inventory : (state.inventory || []), stockMovements: Array.isArray(snapshot.stockMovements) ? snapshot.stockMovements : (state.stockMovements || []), workspace: snapshot.workspace || state.workspace });
         } catch (error) {
           restoreMessage = `Restore rejected: ${error.message}`;
           services.audit.record('backup.restore_failed', { reason: String(error.message || 'invalid backup').slice(0,120) });
