@@ -110,6 +110,7 @@ try {
     await page.goto(`${publicBase.toString()}#/tracking`, { waitUntil: 'domcontentloaded' });
     await page.locator('.screen').waitFor();
     assert.match(await page.locator('body').innerText(), /Shipment Tracking/);
+    assert.match(await page.locator('body').innerText(), /Delivery timeline/, 'public tracking must show the delivery timeline');
     assert.match(await page.locator('body').innerText(), /delivered/i);
     assert.equal(await page.getByRole('button', { name: 'WhatsApp' }).count(), 0, 'Public tracking must be read-only');
 
@@ -189,6 +190,7 @@ try {
       ['notify', /Customer Notifications/],
       ['settlements', /COD Settlements/],
       ['sync', /Sync Center/],
+      ['run', /Run Sheet/],
     ];
     for (const [route, expected] of sprint3Screens) {
       await page.goto(`${BASE}#/${route}`, { waitUntil: 'domcontentloaded' });
