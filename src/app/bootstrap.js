@@ -14,7 +14,7 @@ export async function bootstrap(root) {
   const modules = createModules({ store, services });
   const router = createRouter(store);
   installSingleCustomerPicker();
-  const render = () => { const state=store.getState(); const module=modules[state.route]||modules.home; root.replaceChildren(createShell({state,navigate:router.navigate,content:module.render(state)})); };
+  const render = () => { const state=store.getState(); const module=modules[state.route]||modules.home; root.replaceChildren(createShell({state,navigate:router.navigate,content:module.render(state),store})); };
   store.subscribe(render); services.audit.installUiCapture(document);
   addEventListener('online',()=>{store.setState({online:true});services.audit.record('network.reconnected');void services.audit.flush();void services.sync.flush().catch((error)=>services.audit.record('sync.replay_failed',{message:error?.message||'unknown'}));});
   addEventListener('offline',()=>{store.setState({online:false});services.audit.record('network.disconnected');});

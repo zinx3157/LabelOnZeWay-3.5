@@ -23,4 +23,54 @@
   --space-5: 2rem;
   --sidebar: 228px;
   --mobile-nav: 70px;
+  --panel-deep: #081318;
+  --topbar-bg: rgba(6,16,21,.92);
+  --nav-bg: rgba(8,19,24,.97);
+  --footer-bg: rgba(7,18,24,.94);
+  --row-grad: linear-gradient(180deg,rgba(14,31,39,.97),rgba(10,24,31,.97));
+  --row-grad-hover: linear-gradient(180deg,rgba(16,35,43,.99),rgba(11,27,34,.99));
+  --focus-ring: rgba(82,226,188,.1);
+  --accent-tint: rgba(82,226,188,.11);
+  --primary-border: rgba(82,226,188,.5);
+  --primary-bg: rgba(82,226,188,.12);
+  --primary-text: var(--accent-strong);
+  --danger-border: rgba(255,100,100,.35);
+  --danger-bg: rgba(255,90,90,.06);
+  --success-text: #4cc38a;
+  --danger-text: #ff9e9e;
+  --chart: #4f9cf9;
+}
+
+/* Light theme: same tokens, paper palette. Toggled via html[data-theme]. */
+[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f4f6f7;
+  --surface: #ffffff;
+  --surface-2: #eef1f3;
+  --surface-3: #e2e8eb;
+  --text: #101828;
+  --muted: #5c6672;
+  --accent: #0f9d6e;
+  --accent-strong: #0b7a56;
+  --danger: #b42318;
+  --warning: #8a6116;
+  --border: #d9dee3;
+  --border-strong: #b6c0c8;
+  --shadow: 0 14px 40px rgba(16,24,40,.10);
+  --panel-deep: #e8edf0;
+  --topbar-bg: rgba(255,255,255,.92);
+  --nav-bg: rgba(248,250,251,.97);
+  --footer-bg: rgba(255,255,255,.94);
+  --row-grad: linear-gradient(180deg,#ffffff,#fafbfc);
+  --row-grad-hover: linear-gradient(180deg,#f4f7f8,#edf1f3);
+  --focus-ring: rgba(15,157,110,.16);
+  --accent-tint: rgba(15,157,110,.10);
+  --primary-border: rgba(15,157,110,.45);
+  --primary-bg: rgba(15,157,110,.10);
+  --primary-text: #0b7a56;
+  --danger-border: rgba(180,35,24,.35);
+  --danger-bg: rgba(180,35,24,.06);
+  --success-text: #157f3d;
+  --danger-text: #b42318;
+  --chart: #1570ef;
 }

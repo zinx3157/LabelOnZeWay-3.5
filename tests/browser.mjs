@@ -38,6 +38,13 @@ try {
       assert.notEqual(layout.mobile, 'none', `${viewport.name} mobile nav must be visible`);
     }
     assert.equal(layout.overflow, false, `${viewport.name} home must not overflow horizontally`);
+    await page.getByRole('button', { name: /light theme|dark theme/i }).click();
+    const toggled = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+    assert.equal(toggled, 'light', `${viewport.name} theme toggle must switch to light`);
+    const lightOverflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+    assert.equal(lightOverflow, false, `${viewport.name} home must not overflow in light theme`);
+    await page.getByRole('button', { name: /light theme|dark theme/i }).click();
+    assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-theme')), 'dark', `${viewport.name} theme toggle must switch back`);
     if (!viewport.mobile) {
       await page.goto(`${BASE}#/batch`, { waitUntil: 'domcontentloaded' });
       await page.locator('.screen').waitFor();

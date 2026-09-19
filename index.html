@@ -9,18 +9,24 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="./public/icon.svg">
   <link rel="manifest" href="./public/manifest.webmanifest">
-  <link rel="stylesheet" href="./src/styles/tokens.css?v=36">
-  <link rel="stylesheet" href="./src/styles/app.css?v=36">
-  <link rel="stylesheet" href="./src/styles/workflows.css?v=36">
-  <link rel="stylesheet" href="./src/styles/batch-customer-picker.css?v=36">
-  <link rel="stylesheet" href="./src/styles/thermal-label.css?v=36">
-  <link rel="stylesheet" href="./src/styles/audit.css?v=36">
+  <link rel="stylesheet" href="./src/styles/tokens.css?v=37">
+  <link rel="stylesheet" href="./src/styles/app.css?v=37">
+  <link rel="stylesheet" href="./src/styles/workflows.css?v=37">
+  <link rel="stylesheet" href="./src/styles/batch-customer-picker.css?v=37">
+  <link rel="stylesheet" href="./src/styles/thermal-label.css?v=37">
+  <link rel="stylesheet" href="./src/styles/audit.css?v=37">
   <title>LZWay 3.5</title>
+<script>
+  // Apply the saved theme before first paint to avoid a flash of the wrong palette.
+  try {
+    var saved = JSON.parse(localStorage.getItem('lzway.3.5.state.v1') || 'null');
+    if (saved && saved.ui && saved.ui.theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  } catch (error) { /* first run stays dark */ }
+</script>
 </head>
-<body>
-  <main id="app" aria-live="polite"></main>
+<body>  <main id="app" aria-live="polite"></main>
   <script type="module">
-    const VERSION = '36';
+    const VERSION = '37';
     try {
       if ('caches' in window) {
         const keys = await caches.keys();

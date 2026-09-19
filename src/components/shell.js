@@ -15,7 +15,7 @@ function navButton(route, label, active, navigate) {
   return button;
 }
 
-export function createShell({ state, navigate, content }) {
+export function createShell({ state, navigate, content, store }) {
   const shell = document.createElement('div');
   shell.className = 'app-shell';
   const sidebar = document.createElement('aside');
@@ -55,7 +55,22 @@ export function createShell({ state, navigate, content }) {
   profile.className = 'status-profile';
   profile.textContent = `${state.workspace?.name || 'Local'} / ${state.activeProfileId || state.workspace?.profileId || 'ps_default'}`;
   status.append(dot, connectivity, separator, sync, separator.cloneNode(true), profile);
-  header.append(status);
+  const themeToggle = document.createElement('button');
+  themeToggle.type = 'button';
+  const theme = state.ui?.theme === 'light' ? 'light' : 'dark';
+  themeToggle.className = 'theme-toggle';
+  themeToggle.textContent = theme === 'light' ? 'Dark mode' : 'Light mode';
+  themeToggle.setAttribute('aria-label', theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme');
+  themeToggle.addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    const next = current === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    themeToggle.textContent = next === 'light' ? 'Dark mode' : 'Light mode';
+    themeToggle.setAttribute('aria-label', next === 'light' ? 'Switch to dark theme' : 'Switch to light theme');
+    store.setState({ ui: { ...store.getState().ui, theme: next } });
+  });
+  document.documentElement.setAttribute('data-theme', theme);
+  header.append(status, themeToggle);
   const stage = document.createElement('main');
   stage.className = 'stage';
   stage.append(content);
