@@ -2,6 +2,7 @@ import { heading } from '../components/view.js';
 import { field, action } from '../components/form.js';
 import { formatAr } from '../domain/money.js';
 import { lowStockItems, suggestReorder, csvStock, csvMovements, STOCK_MOVEMENT_REASONS } from '../domain/stock.js';
+import { t } from '../domain/i18n.js';
 import { CSV_BOM } from '../domain/csv.js';
 
 function profileId(state) {
@@ -27,7 +28,7 @@ function metric(label, value) {
   const card = document.createElement('article');
   card.className = 'metric-card';
   const name = document.createElement('span');
-  name.textContent = label;
+  name.textContent = t(label);
   const result = document.createElement('strong');
   result.textContent = String(value);
   card.append(name, result);
@@ -216,7 +217,7 @@ export function createStockModule({ store }) {
       const ledger = document.createElement('div');
       ledger.className = 'workspace-card';
       const ledgerTitle = document.createElement('h2');
-      ledgerTitle.textContent = 'Recent movements';
+      ledgerTitle.textContent = t('Recent movements');
       ledger.append(ledgerTitle);
       for (const move of movements.slice(0, 20)) {
         const row = document.createElement('div');

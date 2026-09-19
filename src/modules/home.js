@@ -1,4 +1,5 @@
 import { heading } from '../components/view.js';
+import { t } from '../domain/i18n.js';
 import { parcelStatusCounts, reconciliationTotals } from '../domain/manifest.js';
 import { formatAr } from '../domain/money.js';
 import { dailySeries } from '../domain/analytics.js';
@@ -8,7 +9,7 @@ function card(label, value) {
   const item = document.createElement('article');
   item.className = 'metric-card';
   const name = document.createElement('span');
-  name.textContent = label;
+  name.textContent = t(label);
   const result = document.createElement('strong');
   result.textContent = String(value);
   item.append(name, result);
@@ -46,7 +47,7 @@ export function createHomeModule({ store }) {
       const stock = document.createElement('div');
       stock.className = 'workspace-card';
       const stockTitle = document.createElement('h2');
-      stockTitle.textContent = 'Stock overview';
+      stockTitle.textContent = t('Stock overview');
       const stockGrid = document.createElement('div');
       stockGrid.className = 'metric-grid';
       const lowCard = card('Low / out', low);
@@ -68,7 +69,7 @@ export function createHomeModule({ store }) {
       const readiness = document.createElement('div');
       readiness.className = 'workspace-card';
       const readinessTitle = document.createElement('h2');
-      readinessTitle.textContent = 'System readiness';
+      readinessTitle.textContent = t('System readiness');
       const readinessGrid = document.createElement('div');
       readinessGrid.className = 'metric-grid';
       readinessGrid.append(card('Network', state.online ? 'Online' : 'Offline'), card('Sync', state.sync?.status || 'idle'), card('Profiles', (state.profiles || []).length), card('Open claims', (state.claims || []).length));
@@ -78,7 +79,7 @@ export function createHomeModule({ store }) {
       const trend = document.createElement('div');
       trend.className = 'workspace-card';
       const trendTitle = document.createElement('h2');
-      trendTitle.textContent = 'Last 7 days';
+      trendTitle.textContent = t('Last 7 days');
       const series = dailySeries(state, { days: 7 });
       const deliveriesChart = barChart(series.map((day) => ({ label: day.date.slice(8), value: day.delivered })), { label: 'Deliveries per day' });
       const codSpark = sparkline(series.map((day) => day.codAr), { label: 'COD collected per day' });

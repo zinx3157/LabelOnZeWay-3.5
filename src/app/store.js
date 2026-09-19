@@ -7,7 +7,7 @@ const initialState = Object.freeze({
   profileSettings: { name: '', manifestEmail: '' },
   online: true,
   sync: { status: 'idle', conflict: false, devices: [] },
-  ui: { modal: null, busy: false, notice: '', theme: 'dark' },
+  ui: { modal: null, busy: false, notice: '', theme: 'dark', lang: 'en' },
   customers: [],
   parcels: [],
   archive: [],

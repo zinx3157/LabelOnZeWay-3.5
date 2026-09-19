@@ -1,11 +1,13 @@
+import { t } from '../domain/i18n.js';
+
 export function heading(title, description, trailing = null) {
   const wrap = document.createElement('div');
   wrap.className = 'screen-heading';
   const copy = document.createElement('div');
   const h1 = document.createElement('h1');
-  h1.textContent = title;
+  h1.textContent = t(title);
   const p = document.createElement('p');
-  p.textContent = description;
+  p.textContent = t(description);
   copy.append(h1, p);
   wrap.append(copy);
   if (trailing) wrap.append(trailing);

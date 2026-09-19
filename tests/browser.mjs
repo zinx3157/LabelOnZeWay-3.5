@@ -45,6 +45,10 @@ try {
     assert.equal(lightOverflow, false, `${viewport.name} home must not overflow in light theme`);
     await page.getByRole('button', { name: /light theme|dark theme/i }).click();
     assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-theme')), 'dark', `${viewport.name} theme toggle must switch back`);
+    await page.getByRole('button', { name: /malagasy|english/i }).click();
+    assert.match(await page.locator('.sidebar').innerText(), /Mpanjifa/, `${viewport.name} nav must render in Malagasy`);
+    await page.getByRole('button', { name: /malagasy|english/i }).click();
+    assert.match(await page.locator('.sidebar').innerText(), /Customers/, `${viewport.name} nav must return to English`);
     if (!viewport.mobile) {
       await page.goto(`${BASE}#/batch`, { waitUntil: 'domcontentloaded' });
       await page.locator('.screen').waitFor();

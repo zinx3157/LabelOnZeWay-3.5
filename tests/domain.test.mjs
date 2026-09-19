@@ -318,3 +318,18 @@ test('analytics derive daily delivery series, aging buckets and exception rate',
   assert.deepEqual(agingBuckets(state, { now }).map((bucket) => bucket.count), [2, 0, 1, 0]);
   assert.deepEqual(exceptionRate(state), { exceptions: 1, total: 6, rate: 17 });
 });
+
+import { t, setLang, getLang, TRANSLATED_KEYS } from '../src/domain/i18n.js';
+
+test('i18n switches UI chrome to Malagasy and passes unknown strings through', () => {
+  assert.equal(setLang('en'), 'en');
+  assert.equal(t('Customers'), 'Customers');
+  assert.equal(setLang('mg'), 'mg');
+  assert.equal(getLang(), 'mg');
+  assert.equal(t('Customers'), 'Mpanjifa');
+  assert.equal(t('Run Sheet'), 'Lalana androany');
+  assert.equal(t('Some future screen title'), 'Some future screen title');
+  assert.equal(setLang('xx'), 'en');
+  assert.ok(TRANSLATED_KEYS.length >= 40, 'chrome dictionary must cover nav + headings');
+  setLang('en');
+});

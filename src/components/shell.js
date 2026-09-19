@@ -1,3 +1,4 @@
+import { t, setLang, getLang } from '../domain/i18n.js';
 const PRIMARY = [
   ['home','Home'],['label','New Label'],['manifest','Manifest'],['batch','Batch'],['tracking','Tracking'],['customers','Customers'],['stock','Stock']
 ];
@@ -10,7 +11,7 @@ function navButton(route, label, active, navigate) {
   button.type = 'button';
   button.className = `nav-item${active === route ? ' is-active' : ''}`;
   button.dataset.route = route;
-  button.textContent = label;
+  button.textContent = t(label);
   button.addEventListener('click', () => navigate(route));
   return button;
 }
@@ -45,7 +46,7 @@ export function createShell({ state, navigate, content, store }) {
   const dot = document.createElement('span');
   dot.className = `status-dot ${state.online ? 'is-online' : 'is-offline'}`;
   const connectivity = document.createElement('span');
-  connectivity.textContent = state.online ? 'Online' : 'Offline';
+  connectivity.textContent = t(state.online ? 'Online' : 'Offline');
   const separator = document.createElement('span');
   separator.className = 'status-sep';
   separator.textContent = '•';
@@ -55,22 +56,35 @@ export function createShell({ state, navigate, content, store }) {
   profile.className = 'status-profile';
   profile.textContent = `${state.workspace?.name || 'Local'} / ${state.activeProfileId || state.workspace?.profileId || 'ps_default'}`;
   status.append(dot, connectivity, separator, sync, separator.cloneNode(true), profile);
+  setLang(state.ui?.lang === 'mg' ? 'mg' : 'en');
+  document.documentElement.lang = getLang();
   const themeToggle = document.createElement('button');
   themeToggle.type = 'button';
   const theme = state.ui?.theme === 'light' ? 'light' : 'dark';
   themeToggle.className = 'theme-toggle';
-  themeToggle.textContent = theme === 'light' ? 'Dark mode' : 'Light mode';
+  themeToggle.textContent = t(theme === 'light' ? 'Dark mode' : 'Light mode');
   themeToggle.setAttribute('aria-label', theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme');
   themeToggle.addEventListener('click', () => {
     const current = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
     const next = current === 'light' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', next);
-    themeToggle.textContent = next === 'light' ? 'Dark mode' : 'Light mode';
+    themeToggle.textContent = t(next === 'light' ? 'Dark mode' : 'Light mode');
     themeToggle.setAttribute('aria-label', next === 'light' ? 'Switch to dark theme' : 'Switch to light theme');
     store.setState({ ui: { ...store.getState().ui, theme: next } });
   });
   document.documentElement.setAttribute('data-theme', theme);
-  header.append(status, themeToggle);
+  const langToggle = document.createElement('button');
+  langToggle.type = 'button';
+  langToggle.className = 'theme-toggle lang-toggle';
+  langToggle.textContent = getLang() === 'mg' ? 'EN' : 'MG';
+  langToggle.setAttribute('aria-label', getLang() === 'mg' ? "Show interface in English" : "Aseho amin'ny teny malagasy ny rindranasa");
+  langToggle.addEventListener('click', () => {
+    const next = setLang(getLang() === 'mg' ? 'en' : 'mg');
+    document.documentElement.lang = next;
+    langToggle.textContent = next === 'mg' ? 'EN' : 'MG';
+    store.setState({ ui: { ...store.getState().ui, lang: next } });
+  });
+  header.append(status, themeToggle, langToggle);
   const stage = document.createElement('main');
   stage.className = 'stage';
   stage.append(content);
