@@ -3,6 +3,7 @@ import { heading, textStack } from '../components/view.js';
 import { action, field } from '../components/form.js';
 import { podViewer, createPodCapture } from '../components/pod-view.js';
 import { buildPod } from '../domain/pod.js';
+import { timelineView } from '../components/timeline.js';
 
 function publicTrackingUrl(token) {
   const url = new URL(location.href);
@@ -114,7 +115,7 @@ export function createTrackingModule({ services, store }) {
       if (publicToken) {
         const local = findByTracking(state, publicToken);
         if (local) {
-          section.append(trackingCard(local, { readOnly: true }));
+          section.append(trackingCard(local, { readOnly: true }), timelineView(local, { phone: state.profileSettings?.supportPhone || '' }));
           return section;
         }
         const status = document.createElement('div');
@@ -129,7 +130,7 @@ export function createTrackingModule({ services, store }) {
               return;
             }
             const parcel = { pickId: data.pick_id, status: data.status, archived: data.archived, statusUpdatedAt: data.updated_at };
-            section.replaceChildren(heading('Shipment Tracking', 'Read-only shipment status.'), trackingCard(parcel, { readOnly: true }));
+            section.replaceChildren(heading('Shipment Tracking', 'Read-only shipment status.'), trackingCard(parcel, { readOnly: true }), timelineView(parcel, {}));
           } catch {
             status.textContent = 'Tracking service temporarily unavailable.';
           }
