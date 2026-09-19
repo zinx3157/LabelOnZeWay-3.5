@@ -187,7 +187,19 @@ export function createSettingsModule({ store, services }) {
 
       printing.append(top, result, quickActions, advanced);
       if (state.ui?.notice) { const notice = document.createElement('div'); notice.className = 'calculation'; notice.textContent = state.ui.notice; section.append(notice); }
-      grid.append(profiles, cloud, printing);
+      const tools = document.createElement('article');
+      tools.className = 'workspace-card';
+      const toolsTitle = document.createElement('h2');
+      toolsTitle.textContent = 'Team & automation';
+      const toolsRow = document.createElement('div');
+      toolsRow.className = 'button-row';
+      for (const [hash, label] of [['#/notify', 'Customer notifications'], ['#/settlements', 'COD settlements'], ['#/sync', 'Sync center']]) {
+        const open = action(label);
+        open.addEventListener('click', () => { location.hash = hash; });
+        toolsRow.append(open);
+      }
+      tools.append(toolsTitle, toolsRow);
+      grid.append(profiles, cloud, printing, tools);
       section.append(grid);
       return section;
     },

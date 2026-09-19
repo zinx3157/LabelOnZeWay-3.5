@@ -11,6 +11,9 @@ import { createHomeModule } from './home.js';
 import { createReportsModule } from './reports.js';
 import { createProfilesModule } from './profiles.js';
 import { createStockModule } from './stock.js';
+import { createNotifyModule } from './notify.js';
+import { createSettlementsModule } from './settlements.js';
+import { createSyncModule } from './sync.js';
 
 export function createModules({ store, services }) {
   return {
@@ -27,5 +30,8 @@ export function createModules({ store, services }) {
     reports: createReportsModule({ store, services }),
     profiles: createProfilesModule({ store, services }),
     settings: createSettingsModule({ store, services }),
+    notify: createNotifyModule({ store }),
+    settlements: createSettlementsModule({ store, services }),
+    sync: createSyncModule({ store, services }),
   };
 }

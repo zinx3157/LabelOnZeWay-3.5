@@ -184,6 +184,21 @@ try {
     await page.getByRole('button', { name: 'Delete selected' }).click();
     assert.match(await page.locator('body').innerText(), /No saved customers yet/);
 
+    const sprint3Screens = [
+      ['stock', /Stock Management/],
+      ['notify', /Customer Notifications/],
+      ['settlements', /COD Settlements/],
+      ['sync', /Sync Center/],
+    ];
+    for (const [route, expected] of sprint3Screens) {
+      await page.goto(`${BASE}#/${route}`, { waitUntil: 'domcontentloaded' });
+      await page.locator('.screen').waitFor();
+      assert.match(await page.locator('body').innerText(), expected, `${route} screen must render its heading`);
+    }
+    await page.goto(`${BASE}#/settings`, { waitUntil: 'domcontentloaded' });
+    await page.locator('.screen').waitFor();
+    assert.match(await page.locator('body').innerText(), /COD settlements/, 'settings must expose the sprint-3 tools');
+
     const finalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
     assert.equal(finalOverflow, false, `${viewport.name} must not develop horizontal overflow after navigation loops`);
     assert.deepEqual(errors, [], `${viewport.name} browser console/page errors: ${errors.join(' | ')}`);

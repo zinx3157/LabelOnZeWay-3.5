@@ -233,3 +233,27 @@ th { position: sticky; top: 0; background: var(--surface-2); color: var(--muted)
   .batch-money-value { min-width: 0; }
   .batch-sticky-actions .button { flex: 1 1 100%; }
 }
+
+
+/* Sprint 3: POD, notifications, settlements, sync center, stock tools */
+.pod-panel { display: grid; gap: 0.6rem; margin-top: 0.6rem; }
+.pod-signature { width: 100%; max-width: 320px; height: 120px; border: 1px solid #d7dbe0; border-radius: 10px; background: #fff; touch-action: none; }
+.pod-thumbs { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.pod-thumb { width: 96px; height: 96px; object-fit: cover; border-radius: 10px; border: 1px solid rgba(16, 24, 40, 0.12); background: #f2f4f7; }
+.pod-meta { font-size: 0.82rem; opacity: 0.78; margin: 0.2rem 0; }
+.pod-viewer a { font-size: 0.85rem; }
+.scan-video { width: 100%; max-width: 280px; border-radius: 10px; background: #000; margin-top: 0.5rem; }
+.metric-card-button { cursor: pointer; }
+.metric-card-button:focus-visible { outline: 2px solid #1570ef; outline-offset: 2px; }
+.settle-variance { font-weight: 650; }
+.settle-variance.is-pos { color: #157f3d; }
+.settle-variance.is-neg { color: #b42318; }
+.notify-row { gap: 0.4rem; }
+.sync-conflict .card { gap: 0.4rem; }
+.sync-choice { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.9rem; }
+.sync-device-row { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.85rem; padding: 0.25rem 0; border-bottom: 1px solid rgba(16, 24, 40, 0.08); }
+.stock-reason { padding: 0.45rem 0.5rem; border: 1px solid #d7dbe0; border-radius: 8px; background: #fff; font: inherit; }
+@media (max-width: 640px) {
+  .pod-thumbs { gap: 0.4rem; }
+  .sync-device-row { flex-wrap: wrap; }
+}

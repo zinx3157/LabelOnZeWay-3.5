@@ -2,7 +2,7 @@ const PRIMARY = [
   ['home','Home'],['label','New Label'],['manifest','Manifest'],['batch','Batch'],['tracking','Tracking'],['customers','Customers'],['stock','Stock']
 ];
 const SECONDARY = [
-  ['archive','Archive'],['claims','Claims'],['reconciliation','Reconciliation'],['reports','Reports'],['profiles','Profiles'],['settings','Settings']
+  ['archive','Archive'],['claims','Claims'],['reconciliation','Reconciliation'],['reports','Reports'],['notify','Notify'],['settlements','Settlements'],['sync','Sync Center'],['profiles','Profiles'],['settings','Settings']
 ];
 
 function navButton(route, label, active, navigate) {
