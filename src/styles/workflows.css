@@ -299,3 +299,20 @@ a.button { display: inline-block; text-align: center; text-decoration: none; }
   .run-summary { flex-wrap: wrap; }
   .run-stop .button-row a, .run-stop .button-row button { flex: 1 1 45%; }
 }
+
+
+/* Design refinement pass: one type scale, one spacing rhythm, both themes.
+   Appended last so it wins the cascade without touching component rules. */
+body { line-height: var(--leading-body); }
+.screen h1 { font-size: var(--text-2xl); line-height: var(--leading-tight); letter-spacing: -.022em; margin: 0 0 .4rem; text-wrap: balance; }
+.screen-heading { margin-bottom: var(--space-4); }
+.screen-heading p { font-size: var(--text-base); line-height: 1.5; }
+.workspace-card h2,.timeline-card h2 { font-size: var(--text-lg); line-height: var(--leading-tight); letter-spacing: -.01em; text-wrap: balance; }
+.metric-card strong { font-size: var(--text-xl); letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.metric-card span,.field > span,.pod-meta,small { font-size: var(--text-sm); }
+.button { font-size: var(--text-base); font-weight: 550; }
+.nav-item { font-size: var(--text-base); }
+.status-line { font-size: var(--text-sm); }
+.card strong { letter-spacing: -.005em; }
+.card-list { gap: var(--space-2); }
+.button-row { gap: var(--space-2); }

@@ -39,6 +39,14 @@
   --success-text: #4cc38a;
   --danger-text: #ff9e9e;
   --chart: #4f9cf9;
+  --text-xs: .75rem;
+  --text-sm: .84rem;
+  --text-base: .95rem;
+  --text-lg: 1.08rem;
+  --text-xl: 1.32rem;
+  --text-2xl: clamp(1.5rem, 2.6vw, 2.05rem);
+  --leading-body: 1.55;
+  --leading-tight: 1.2;
 }
 
 /* Light theme: same tokens, paper palette. Toggled via html[data-theme]. */
