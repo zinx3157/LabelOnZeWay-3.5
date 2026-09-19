@@ -272,3 +272,28 @@ test('stock helpers flag low items, suggest reorders and value inventory', () =>
   assert.match(csv, /"SKU","Product"/);
   assert.match(csv, /"Carton"/);
 });
+
+import { runStops, runTotals, runCouriers, nextRunStatus, runStatusLabel, isoDay, stopMapUrl, stopTelUrl } from '../src/domain/run.js';
+
+test('run sheet selects the day stops in work order and totals COD', () => {
+  const state = { parcels: [
+    { id: 'r1', pickId: 'P1', status: 'ready', createdAt: '2026-09-18T08:00:00Z', collect: 10000, courier: 'Hery', customer: { name: 'A', phone: '0341111111', address: 'Analakely' } },
+    { id: 'r2', pickId: 'P2', status: 'delivery', createdAt: '2026-09-18T07:00:00Z', collect: 20000, courier: 'Hery', customer: { name: 'B', phone: '0342222222' } },
+    { id: 'r3', pickId: 'P3', status: 'delivered', statusUpdatedAt: '2026-09-18T10:00:00Z', collect: 5000, courier: 'Rado' },
+    { id: 'r4', pickId: 'P4', status: 'delivered', statusUpdatedAt: '2026-09-17T10:00:00Z', collect: 5000 },
+    { id: 'r5', pickId: 'P5', status: 'exception', createdAt: '2026-09-18T09:00:00Z', collect: 7000 },
+  ] };
+  const stops = runStops(state, { date: '2026-09-18' });
+  assert.deepEqual(stops.map((stop) => stop.pickId), ['P2', 'P1', 'P3']);
+  assert.deepEqual(runTotals(stops), { total: 3, done: 1, expectedAr: 35000, collectedAr: 5000 });
+  assert.deepEqual(runStops(state, { date: '2026-09-18', courier: 'rado' }).map((stop) => stop.pickId), ['P3']);
+  assert.deepEqual(runCouriers(state), ['Hery', 'Rado']);
+  assert.equal(nextRunStatus('delivery'), 'delivered');
+  assert.equal(nextRunStatus('delivered'), '');
+  assert.equal(runStatusLabel('in-transit'), 'In transit');
+  assert.match(stopMapUrl(stops[1]), /openstreetmap\.org\/search\?query=Analakely/);
+  assert.equal(stopTelUrl(stops[1]), 'tel:+0341111111');
+  assert.equal(stopMapUrl(stops[0]), '');
+  assert.equal(stopMapUrl({ customer: {} }), '');
+  assert.equal(isoDay(new Date('2026-09-18T23:30:00Z')), '2026-09-18');
+});
