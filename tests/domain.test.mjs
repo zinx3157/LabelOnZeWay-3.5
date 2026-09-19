@@ -212,3 +212,46 @@ test('settlement receipt prints the LZWAY header, amounts and variance', () => {
   assert.match(text, /VARIANCE:\s+-500 AR/);
   assert.match(text, /SIGNATURE:/);
 });
+
+import { normalizeMadagascarWhatsApp, renderTemplate, waLink, shouldNotify, agingParcels, buildNotificationQueue } from '../src/domain/notifications.js';
+
+test('notification engine normalizes phones, renders templates and respects the 24h cooldown', () => {
+  assert.equal(normalizeMadagascarWhatsApp('034 12 345 67'), '261341234567');
+  assert.equal(normalizeMadagascarWhatsApp('+261 34 123 4567'), '261341234567');
+  assert.equal(normalizeMadagascarWhatsApp(''), '');
+  const parcel = { pickId: '180926-1', status: 'out-for-delivery', customer: { name: 'Soa' } };
+  assert.equal(renderTemplate('{name} {pick} {status} {days}', parcel, { days: 4 }), 'Soa 180926-1 out for-delivery 4');
+  assert.equal(waLink('0341234567', 'bonjour'), 'https://wa.me/261341234567?text=bonjour');
+  assert.equal(waLink('', 'x'), '');
+  const now = new Date('2026-09-18T12:00:00Z');
+  const fresh = { notifyLog: [{ kind: 'aging', at: '2026-09-18T11:00:00Z' }] };
+  const stale = { notifyLog: [{ kind: 'aging', at: '2026-09-17T10:00:00Z' }] };
+  assert.equal(shouldNotify(fresh, 'aging', { now }), false);
+  assert.equal(shouldNotify(stale, 'aging', { now }), true);
+  assert.equal(shouldNotify({}, 'aging', { now }), true);
+  const agingState = { parcels: [
+    { id: 'a1', status: 'ready', createdAt: '2026-09-14T12:00:00Z' },
+    { id: 'a2', status: 'ready', createdAt: '2026-09-17T12:00:00Z' },
+  ] };
+  assert.deepEqual(agingParcels(agingState, { agingDays: 3, now }).map((p) => p.id), ['a1']);
+});
+
+
+test('notification queue selects aging and exception parcels, skips phoneless and recently notified', () => {
+  const now = new Date('2026-09-18T12:00:00Z');
+  const state = { parcels: [
+    { id: 'n1', pickId: 'P1', status: 'ready', createdAt: '2026-09-13T12:00:00Z', customer: { name: 'A', phone: '0341111111' } },
+    { id: 'n2', pickId: 'P2', status: 'exception', createdAt: '2026-09-17T12:00:00Z', customer: { name: 'B', phone: '0342222222' } },
+    { id: 'n3', pickId: 'P3', status: 'ready', createdAt: '2026-09-12T12:00:00Z', customer: { name: 'C' } },
+    { id: 'n4', pickId: 'P4', status: 'exception', createdAt: '2026-09-17T12:00:00Z', customer: { name: 'D', phone: '0344444444' }, notifyLog: [{ kind: 'exception', at: '2026-09-18T11:00:00Z' }] },
+    { id: 'n5', pickId: 'P5', status: 'dispatch', createdAt: '2026-09-10T12:00:00Z', customer: { name: 'E', phone: '0345555555' } },
+  ] };
+  const queue = buildNotificationQueue(state, { agingDays: 3, now });
+  assert.deepEqual(queue.map((item) => item.pickId).sort(), ['P1', 'P2']);
+  const aging = queue.find((item) => item.pickId === 'P1');
+  assert.equal(aging.kind, 'aging');
+  assert.equal(aging.days, 5);
+  assert.match(aging.message, /depuis 5 jour/);
+  assert.match(aging.waUrl, /^https:\/\/wa\.me\/261341111111\?text=/);
+  assert.equal(queue.find((item) => item.pickId === 'P2').kind, 'exception');
+});

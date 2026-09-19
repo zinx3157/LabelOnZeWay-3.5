@@ -58,3 +58,12 @@ test('Pre-rebrand local state migrates to the LZWay key and stays mirrored', () 
   assert.ok(localStorage.getItem('lzway.3.5.state.v1'), 'new key is written');
   assert.ok(localStorage.getItem('labelonzeway.3.5.state.v1').includes('Legacy Customer'), 'legacy key mirrored for rollback safety');
 });
+
+import { createMessagingService } from '../src/services/messaging.js';
+
+test('messaging keeps the exact LZWay copy for reminder and status defaults', () => {
+  const messaging = createMessagingService();
+  const parcel = { pickId: '180926-1', status: 'out-for-delivery', customer: { name: 'Soa', phone: '0341234567' } };
+  assert.equal(messaging.messageFor(parcel, 'reminder'), 'Bonjour Soa, rappel LZWay pour votre colis 180926-1. Statut: out for-delivery.');
+  assert.equal(messaging.messageFor(parcel), 'Bonjour Soa, mise à jour LZWay: colis 180926-1, statut out for-delivery.');
+});
