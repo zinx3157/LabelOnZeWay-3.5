@@ -38,6 +38,16 @@ try {
       assert.notEqual(layout.mobile, 'none', `${viewport.name} mobile nav must be visible`);
     }
     assert.equal(layout.overflow, false, `${viewport.name} home must not overflow horizontally`);
+    if (!viewport.mobile) {
+      await page.goto(`${BASE}#/batch`, { waitUntil: 'domcontentloaded' });
+      await page.locator('.screen').waitFor();
+      const navOverflow = await page.evaluate(() => ({
+        v: document.documentElement.scrollHeight - document.documentElement.clientHeight,
+        clipped: (() => { const sb = document.querySelector('.sidebar'); const cs = getComputedStyle(sb); return cs.overflowY === 'visible' && sb.scrollHeight > sb.clientHeight; })(),
+      }));
+      assert.ok(navOverflow.v <= 1, `${viewport.name} short screens must not gain document scroll from the nav column`);
+      assert.equal(navOverflow.clipped, false, `${viewport.name} sidebar must scroll internally, not spill`);
+    }
 
     await page.goto(`${BASE}#/label`, { waitUntil: 'domcontentloaded' });
     await page.locator('input[name="name"]').fill('UAT Customer <script>alert(1)</script>');
