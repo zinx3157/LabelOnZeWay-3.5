@@ -1,6 +1,8 @@
 import { heading } from '../components/view.js';
 import { parcelStatusCounts, reconciliationTotals } from '../domain/manifest.js';
 import { formatAr } from '../domain/money.js';
+import { dailySeries } from '../domain/analytics.js';
+import { barChart, sparkline } from '../components/charts.js';
 
 function card(label, value) {
   const item = document.createElement('article');
@@ -72,6 +74,19 @@ export function createHomeModule({ store }) {
       readinessGrid.append(card('Network', state.online ? 'Online' : 'Offline'), card('Sync', state.sync?.status || 'idle'), card('Profiles', (state.profiles || []).length), card('Open claims', (state.claims || []).length));
       readiness.append(readinessTitle, readinessGrid);
       section.append(readiness);
+
+      const trend = document.createElement('div');
+      trend.className = 'workspace-card';
+      const trendTitle = document.createElement('h2');
+      trendTitle.textContent = 'Last 7 days';
+      const series = dailySeries(state, { days: 7 });
+      const deliveriesChart = barChart(series.map((day) => ({ label: day.date.slice(8), value: day.delivered })), { label: 'Deliveries per day' });
+      const codSpark = sparkline(series.map((day) => day.codAr), { label: 'COD collected per day' });
+      const codLine = document.createElement('p');
+      codLine.className = 'pod-meta';
+      codLine.textContent = `COD collected: ${formatAr(series.reduce((total, day) => total + day.codAr, 0))} AR over the last 7 days.`;
+      trend.append(trendTitle, deliveriesChart, codSpark, codLine);
+      section.append(trend);
       return section;
     },
   };

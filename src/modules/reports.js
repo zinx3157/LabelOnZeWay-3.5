@@ -2,6 +2,8 @@ import { heading } from '../components/view.js';
 import { CSV_BOM, csvDocument } from '../domain/csv.js';
 import { action } from '../components/form.js';
 import { formatAr } from '../domain/money.js';
+import { agingBuckets, exceptionRate } from '../domain/analytics.js';
+import { barChart } from '../components/charts.js';
 
 function download(name, type, content) {
   const blob = new Blob([content], { type });
@@ -97,6 +99,18 @@ export function createReportsModule({ store, services }) {
       row.append(exportCsv, backup, restore, restoreInput);
       card.append(summary, row, status);
       section.append(card);
+
+      const analyticsCard = document.createElement('div');
+      analyticsCard.className = 'workspace-card';
+      const analyticsTitle = document.createElement('h2');
+      analyticsTitle.textContent = 'Operations analytics';
+      const bucketChart = barChart(agingBuckets(state).map((bucket) => ({ label: bucket.label, value: bucket.count })), { label: 'Active parcels by age' });
+      const rate = exceptionRate(state);
+      const rateLine = document.createElement('p');
+      rateLine.className = 'pod-meta';
+      rateLine.textContent = `Exception rate: ${rate.rate}% (${rate.exceptions} of ${rate.total} parcels).`;
+      analyticsCard.append(analyticsTitle, bucketChart, rateLine);
+      section.append(analyticsCard);
 
       const auditCard = document.createElement('div');
       auditCard.className = 'workspace-card activity-log-card';

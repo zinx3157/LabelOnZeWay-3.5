@@ -297,3 +297,24 @@ test('run sheet selects the day stops in work order and totals COD', () => {
   assert.equal(stopMapUrl({ customer: {} }), '');
   assert.equal(isoDay(new Date('2026-09-18T23:30:00Z')), '2026-09-18');
 });
+
+import { dailySeries, agingBuckets, exceptionRate } from '../src/domain/analytics.js';
+
+test('analytics derive daily delivery series, aging buckets and exception rate', () => {
+  const now = new Date('2026-09-18T12:00:00Z');
+  const state = { parcels: [
+    { id: 'a1', status: 'delivered', collect: 4000, statusUpdatedAt: '2026-09-18T09:00:00Z' },
+    { id: 'a2', status: 'delivered', collect: 6000, statusUpdatedAt: '2026-09-18T10:00:00Z' },
+    { id: 'a3', status: 'delivered', collect: 1000, statusUpdatedAt: '2026-09-16T10:00:00Z' },
+    { id: 'a4', status: 'ready', createdAt: '2026-09-17T12:00:00Z' },
+    { id: 'a5', status: 'delivery', createdAt: '2026-09-08T12:00:00Z' },
+    { id: 'a6', status: 'exception', createdAt: '2026-09-18T06:00:00Z' },
+  ], archive: [{ id: 'x1', status: 'delivered', collect: 500, archivedAt: '2026-09-18T08:00:00Z' }] };
+  const series = dailySeries(state, { days: 3, now });
+  assert.deepEqual(series.map((day) => day.date), ['2026-09-16', '2026-09-17', '2026-09-18']);
+  assert.equal(series[2].delivered, 3);
+  assert.equal(series[2].codAr, 10500);
+  assert.equal(series[0].delivered, 1);
+  assert.deepEqual(agingBuckets(state, { now }).map((bucket) => bucket.count), [2, 0, 1, 0]);
+  assert.deepEqual(exceptionRate(state), { exceptions: 1, total: 6, rate: 17 });
+});
