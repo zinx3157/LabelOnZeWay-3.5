@@ -47,7 +47,14 @@ export function createHomeModule({ store }) {
       stockTitle.textContent = 'Stock overview';
       const stockGrid = document.createElement('div');
       stockGrid.className = 'metric-grid';
-      stockGrid.append(card('SKUs', inventory.length), card('Units', units), card('Low / out', low), card('Value', `${formatAr(value)} Ar`));
+      const lowCard = card('Low / out', low);
+      lowCard.classList.add('metric-card-button');
+      lowCard.setAttribute('role', 'button');
+      lowCard.tabIndex = 0;
+      const openLowStock = () => { store.setState({ ui: { ...store.getState().ui, stockFilter: 'low' } }); location.hash = '#/stock'; };
+      lowCard.addEventListener('click', openLowStock);
+      lowCard.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openLowStock(); } });
+      stockGrid.append(card('SKUs', inventory.length), card('Units', units), lowCard, card('Value', `${formatAr(value)} Ar`));
       const openStock = document.createElement('button');
       openStock.type = 'button';
       openStock.className = 'button button-primary';

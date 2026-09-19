@@ -255,3 +255,20 @@ test('notification queue selects aging and exception parcels, skips phoneless an
   assert.match(aging.waUrl, /^https:\/\/wa\.me\/261341111111\?text=/);
   assert.equal(queue.find((item) => item.pickId === 'P2').kind, 'exception');
 });
+
+import { lowStockItems, suggestReorder, stockValuation, csvStock } from '../src/domain/stock.js';
+
+test('stock helpers flag low items, suggest reorders and value inventory', () => {
+  const inventory = [
+    { sku: 'A', product: 'Carton', qty: 2, reorder: 10, cost: 1500 },
+    { sku: 'B', product: 'Tape', qty: 40, reorder: 10, cost: 500 },
+  ];
+  assert.deepEqual(lowStockItems(inventory).map((item) => item.sku), ['A']);
+  assert.equal(suggestReorder(inventory[0]), 18);
+  assert.equal(suggestReorder(inventory[1]), 0);
+  assert.equal(suggestReorder({ qty: 0, reorder: 0 }), 1);
+  assert.equal(stockValuation(inventory), 2 * 1500 + 40 * 500);
+  const csv = csvStock(inventory);
+  assert.match(csv, /"SKU","Product"/);
+  assert.match(csv, /"Carton"/);
+});
