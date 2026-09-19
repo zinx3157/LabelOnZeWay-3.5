@@ -6,7 +6,7 @@ const initialState = Object.freeze({
   activeProfileId: '',
   profileSettings: { name: '', manifestEmail: '' },
   online: true,
-  sync: { status: 'idle', conflict: false },
+  sync: { status: 'idle', conflict: false, devices: [] },
   ui: { modal: null, busy: false, notice: '' },
   customers: [],
   parcels: [],
@@ -14,6 +14,7 @@ const initialState = Object.freeze({
   claims: [],
   inventory: [],
   stockMovements: [],
+  settlements: [],
   labelDraft: { step: 1, customerId: null, customer: { name: '', phone: '', address: '' }, parcel: { qty: 1, unitPrice: 0, collect: 0, deliveryCharge: 0, notes: '' } },
 });
 
@@ -23,6 +24,7 @@ export function createStore(seed = {}) {
   if (!Array.isArray(state.profiles)) state.profiles = [];
   if (!Array.isArray(state.inventory)) state.inventory = [];
   if (!Array.isArray(state.stockMovements)) state.stockMovements = [];
+  if (!Array.isArray(state.settlements)) state.settlements = [];
   if (typeof state.activeProfileId !== 'string') state.activeProfileId = '';
   if (!state.profileSettings || typeof state.profileSettings !== 'object') state.profileSettings = { name: '', manifestEmail: '' };
   if (!state.labelDraft?.parcel) state.labelDraft = structuredClone(initialState.labelDraft);

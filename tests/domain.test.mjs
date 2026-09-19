@@ -179,3 +179,36 @@ test('POD records coerce coordinates, enforce the size budget and build GPS link
   assert.deepEqual(podIssues(buildPod({})), ['POD has no photo, signature or position']);
   assert.equal(podGpsLink(buildPod({ photo: 'p' })), '');
 });
+
+import { buildSettlementSheet, createSettlement, settlementIsBalanced, csvSettlements } from '../src/domain/settlements.js';
+import { settlementEscPos } from '../src/domain/escpos.js';
+
+test('settlement sheets select COD parcels by day and courier and compute variance', () => {
+  const state = { parcels: [
+    { id: 'p1', pickId: 'P1', status: 'delivered', collect: 5000, statusUpdatedAt: '2026-09-18T10:00:00Z', customer: { name: 'A' } },
+    { id: 'p2', pickId: 'P2', status: 'delivery', collect: 3000, statusUpdatedAt: '2026-09-18T11:00:00Z', courier: 'Jean', customer: { name: 'B' } },
+    { id: 'p3', pickId: 'P3', status: 'ready', collect: 9000, createdAt: '2026-09-18T09:00:00Z' },
+    { id: 'p4', pickId: 'P4', status: 'delivered', collect: 0, statusUpdatedAt: '2026-09-18T09:30:00Z' },
+  ] };
+  const sheet = buildSettlementSheet(state, { date: '2026-09-18' });
+  assert.deepEqual(sheet.rows.map((row) => row.pickId), ['P1', 'P2']);
+  assert.equal(sheet.expectedAr, 8000);
+  const byCourier = buildSettlementSheet(state, { date: '2026-09-18', courier: 'jean' });
+  assert.deepEqual(byCourier.rows.map((row) => row.pickId), ['P2']);
+  const short = createSettlement(sheet, { collectedAr: 7500, method: 'mobile money', note: 'missing 500' });
+  assert.equal(short.varianceAr, -500);
+  assert.equal(settlementIsBalanced(short), false);
+  assert.equal(settlementIsBalanced(createSettlement(sheet, { collectedAr: 8000 })), true);
+  assert.match(csvSettlements([short]), /Expected Ar/);
+  assert.match(csvSettlements([short]), /mobile money/);
+});
+
+
+test('settlement receipt prints the LZWAY header, amounts and variance', () => {
+  const bytes = settlementEscPos({ date: '2026-09-18', courier: 'Jean', expectedAr: 8000, collectedAr: 7500, varianceAr: -500, method: 'cash', parcelCount: 2, note: 'short 500' });
+  const text = new TextDecoder().decode(bytes);
+  assert.match(text, /LZWAY/);
+  assert.match(text, /COD SETTLEMENT/);
+  assert.match(text, /VARIANCE:\s+-500 AR/);
+  assert.match(text, /SIGNATURE:/);
+});
