@@ -163,3 +163,19 @@ test('CSV export neutralises formula triggers and preserves quoting', () => {
   assert.equal(CSV_BOM + csvDocument([['Pick', 'Customer'], ['150926-1', '=HYPERLINK("http://x")']]),
     '\uFEFF"Pick","Customer"\n"150926-1","\'=HYPERLINK(""http://x"")"');
 });
+
+import { buildPod, podIssues, podIsUsable, podGpsLink, POD_PHOTO_MAX_LENGTH } from '../src/domain/pod.js';
+
+test('POD records coerce coordinates, enforce the size budget and build GPS links', () => {
+  const pod = buildPod({ photo: 'data:image/jpeg;base64,x', signature: '', lat: '-18.8792', lng: '47.5079', by: 'Agency A' });
+  assert.equal(pod.lat, -18.8792);
+  assert.equal(pod.lng, 47.5079);
+  assert.equal(podIssues(pod).length, 0);
+  assert.ok(podIsUsable(pod));
+  assert.match(podGpsLink(pod), /openstreetmap.*mlat=-18\.8792/);
+  const huge = buildPod({ photo: 'x'.repeat(POD_PHOTO_MAX_LENGTH + 1) });
+  assert.deepEqual(podIssues(huge), ['Photo exceeds the size budget']);
+  assert.equal(podIsUsable(huge), false);
+  assert.deepEqual(podIssues(buildPod({})), ['POD has no photo, signature or position']);
+  assert.equal(podGpsLink(buildPod({ photo: 'p' })), '');
+});

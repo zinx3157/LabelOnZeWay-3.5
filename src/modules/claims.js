@@ -1,6 +1,7 @@
 import { field, action } from '../components/form.js';
 import { heading, textStack } from '../components/view.js';
 import { makeId } from '../domain/ids.js';
+import { podViewer } from '../components/pod-view.js';
 
 export function createClaimsModule({ store }) {
   return {
@@ -67,7 +68,8 @@ export function createClaimsModule({ store }) {
           }));
         });
         controls.append(toggle);
-        card.append(details, controls);
+        const podParcel = [...state.parcels, ...state.archive].find((item) => item.id === claim.parcelId);
+        card.append(details, ...(podParcel?.pod ? [podViewer(podParcel.pod)] : []), controls);
         list.append(card);
       }
       section.append(list);

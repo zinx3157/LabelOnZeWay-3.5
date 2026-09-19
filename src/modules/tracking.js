@@ -1,6 +1,8 @@
 import { trackingMilestone } from '../domain/tracking.js';
 import { heading, textStack } from '../components/view.js';
 import { action, field } from '../components/form.js';
+import { podViewer, createPodCapture } from '../components/pod-view.js';
+import { buildPod } from '../domain/pod.js';
 
 function publicTrackingUrl(token) {
   const url = new URL(location.href);
@@ -43,6 +45,7 @@ function trackingCard(parcel, { readOnly = false, services, store } = {}) {
     ['small', parcel.archivedAt || parcel.archived ? 'Archived shipment' : 'Active shipment'],
   ]);
   card.append(copy);
+  if (parcel.pod) card.append(podViewer(parcel.pod));
   if (readOnly) return card;
 
   const actions = document.createElement('div');
@@ -80,8 +83,23 @@ function trackingCard(parcel, { readOnly = false, services, store } = {}) {
       store.setState({ ui: { ...store.getState().ui, notice: url } });
     }
   });
-  actions.append(wa, sms, remind, share, copyLink);
-  card.append(actions);
+  const podButton = action('POD');
+  const podPanel = document.createElement('div');
+  podPanel.hidden = true;
+  const capture = createPodCapture({
+    onSave: (podData) => {
+      const record = buildPod({ ...podData, by: store.getState().workspace?.name || '' });
+      store.update((current) => ({
+        ...current,
+        parcels: current.parcels.map((item) => item.id === parcel.id ? { ...item, pod: record, modifiedAt: new Date().toISOString() } : item),
+        archive: current.archive.map((item) => item.id === parcel.id ? { ...item, pod: record } : item),
+      }));
+    },
+  });
+  podPanel.append(capture.wrap);
+  podButton.addEventListener('click', () => { podPanel.hidden = !podPanel.hidden; });
+  actions.append(wa, sms, remind, share, copyLink, podButton);
+  card.append(actions, podPanel);
   return card;
 }
 

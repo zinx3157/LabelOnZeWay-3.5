@@ -1,5 +1,6 @@
 import { action, field } from '../components/form.js';
 import { heading, textStack } from '../components/view.js';
+import { podViewer } from '../components/pod-view.js';
 
 export function createArchiveModule({ store }) {
   return {
@@ -78,7 +79,7 @@ export function createArchiveModule({ store }) {
             ['strong', item.pickId || 'Unknown Pick ID'],
             ['span', item.customer?.name || 'Unknown customer'],
             ['span', `${item.status || 'archived'} · ${item.archivedAt ? new Date(item.archivedAt).toLocaleString() : 'Unknown archive date'}`],
-          ]), restore);
+          ]), ...(item.pod ? [podViewer(item.pod)] : []), restore);
           list.append(card);
         }
       };
