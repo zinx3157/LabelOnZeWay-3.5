@@ -22,6 +22,7 @@
 .label-preview hr { width: 100%; border: 0; border-top: 1px solid #b8c9c2; }
 .card-list { display: grid; gap: .75rem; margin-top: .85rem; }
 .card { padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.card > * { min-width: 0; }
 .card > div { display: grid; gap: .15rem; }
 .card span,.card small { color: var(--muted); }
 .empty-state { padding: 2rem; text-align: center; color: var(--muted); }
@@ -236,13 +237,14 @@ th { position: sticky; top: 0; background: var(--surface-2); color: var(--muted)
 
 
 /* Sprint 3: POD, notifications, settlements, sync center, stock tools */
-.pod-panel { display: grid; gap: 0.6rem; margin-top: 0.6rem; }
-.pod-signature { width: 100%; max-width: 320px; height: 120px; border: 1px solid #d7dbe0; border-radius: 10px; background: #fff; touch-action: none; }
+.pod-panel { display: grid; gap: 0.6rem; margin-top: 0.6rem; flex: 1 1 100%; min-width: 0; max-width: 100%; }
+.pod-signature { width: 100%; max-width: 320px; min-width: 0; height: 120px; border: 1px solid #d7dbe0; border-radius: 10px; background: #fff; touch-action: none; }
 .pod-thumbs { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .pod-thumb { width: 96px; height: 96px; object-fit: cover; border-radius: 10px; border: 1px solid rgba(16, 24, 40, 0.12); background: #f2f4f7; }
 .pod-meta { font-size: 0.82rem; opacity: 0.78; margin: 0.2rem 0; }
 .pod-viewer a { font-size: 0.85rem; }
-.scan-video { width: 100%; max-width: 280px; border-radius: 10px; background: #000; margin-top: 0.5rem; }
+.pod-viewer { flex: 1 1 100%; min-width: 0; }
+.scan-video { width: 100%; max-width: 280px; min-width: 0; border-radius: 10px; background: #000; margin-top: 0.5rem; }
 .metric-card-button { cursor: pointer; }
 .metric-card-button:focus-visible { outline: 2px solid #1570ef; outline-offset: 2px; }
 .settle-variance { font-weight: 650; }
@@ -257,3 +259,16 @@ th { position: sticky; top: 0; background: var(--surface-2); color: var(--muted)
   .pod-thumbs { gap: 0.4rem; }
   .sync-device-row { flex-wrap: wrap; }
 }
+
+/* Hidden elements must stay hidden even when a display rule targets them
+   (author display rules otherwise beat the UA [hidden] rule). */
+[hidden] { display: none; }
+.card > [hidden] { display: none; }
+
+/* POD panel tracks and inputs must shrink with narrow columns. */
+.pod-panel { grid-template-columns: minmax(0, 1fr); }
+.pod-panel input { width: 100%; min-width: 0; max-width: 100%; }
+.pod-signature { max-width: 100%; }
+
+/* Long tokens (tracking ids, ISO timestamps, phones) must wrap in cards. */
+.card span, .card small, .card strong, .pod-meta { overflow-wrap: break-word; }
