@@ -132,18 +132,21 @@ export function createSettingsModule({ store, services }) {
       const bridge = field('Mac bridge URL', 'bridge', localStorage.getItem('lz35.print.bridgeUrl') || defaults.bridgeUrl);
       const ip = field('Printer IP', 'printerIp', localStorage.getItem('lz35.print.printerIp') || defaults.printerIp);
       const port = field('Printer port', 'printerPort', localStorage.getItem('lz35.print.printerPort') || defaults.printerPort, { type: 'number', inputmode: 'numeric' });
+      const pairing = field('Gateway pairing key', 'pairingKey', localStorage.getItem('lz35.print.pairingKey') || '', { type: 'password' });
+      pairing.input.autocomplete = 'off';
       const save = action('Save advanced settings');
       const health = action('Run diagnostics');
       const advancedActions = document.createElement('div');
       advancedActions.className = 'button-row';
       advancedActions.append(save, health);
-      advanced.append(bridge.wrap, ip.wrap, port.wrap, advancedActions);
+      advanced.append(bridge.wrap, ip.wrap, port.wrap, pairing.wrap, advancedActions);
 
       advancedToggle.addEventListener('click', () => {
         advanced.hidden = !advanced.hidden;
         advancedToggle.textContent = advanced.hidden ? 'Advanced' : 'Hide advanced';
       });
       save.addEventListener('click', () => {
+        localStorage.setItem('lz35.print.pairingKey', pairing.input.value.trim());
         localStorage.setItem('lz35.print.bridgeUrl', bridge.input.value.trim());
         localStorage.setItem('lz35.print.printerIp', ip.input.value.trim());
         localStorage.setItem('lz35.print.printerPort', port.input.value.trim());
