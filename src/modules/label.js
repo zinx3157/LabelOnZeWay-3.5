@@ -1,10 +1,10 @@
-import { printedLabelData } from '../domain/label-copy.js?v=48';
-import { field, action } from '../components/form.js?v=48';
-import { heading } from '../components/view.js?v=48';
-import { makeId, makePickId } from '../domain/ids.js?v=48';
-import { calculateCollect, formatAr } from '../domain/money.js?v=48';
-import { makeTrackingToken } from '../domain/tracking.js?v=48';
-import { bytesToBase64, labelEscPos } from '../domain/escpos.js?v=48';
+import { printedLabelData } from '../domain/label-copy.js?v=49';
+import { field, action } from '../components/form.js?v=49';
+import { heading } from '../components/view.js?v=49';
+import { makeId, makePickId } from '../domain/ids.js?v=49';
+import { calculateCollect, formatAr } from '../domain/money.js?v=49';
+import { makeTrackingToken } from '../domain/tracking.js?v=49';
+import { bytesToBase64, labelEscPos } from '../domain/escpos.js?v=49';
 
 function emptyDraft() {
   return { step: 1, customerId: null, customer: { name: '', phone: '', address: '' }, parcel: { qty: 1, unitPrice: 0, collect: 0, deliveryCharge: 0, notes: '' } };

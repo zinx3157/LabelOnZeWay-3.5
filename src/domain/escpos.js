@@ -1,4 +1,4 @@
-import { printedLabelData } from './label-copy.js?v=48';
+import { printedLabelData } from './label-copy.js?v=49';
 function asciiText(value) {
   return String(value ?? '')
     .normalize('NFKD')

@@ -1,9 +1,9 @@
 // COD settlement sheets: pure maths over parcels so cash reconciliation is
 // testable without a DOM. A settlement records what a courier was expected to
 // bring back for a given day versus what was actually counted.
-import { asNumber } from './money.js?v=48';
-import { csvDocument } from './csv.js?v=48';
-import { makeId } from './ids.js?v=48';
+import { asNumber } from './money.js?v=49';
+import { csvDocument } from './csv.js?v=49';
+import { makeId } from './ids.js?v=49';
 
 // Statuses where the collect amount has turned (or is turning) into cash.
 export const COD_STATUSES = Object.freeze(['delivered', 'delivery']);

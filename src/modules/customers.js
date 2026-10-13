@@ -1,5 +1,5 @@
-import { action, field } from '../components/form.js?v=48';
-import { heading } from '../components/view.js?v=48';
+import { action, field } from '../components/form.js?v=49';
+import { heading } from '../components/view.js?v=49';
 
 function clean(value) { return String(value ?? '').replace(/\s+/g, ' ').trim(); }
 function textKey(value) { return clean(value).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
@@ -65,6 +65,17 @@ export function createCustomersModule({ store }) {
       const section = document.createElement('section');
       section.className = 'screen customers-screen';
       const selected = new Set();
+      const draftKey = `lzway-customer-form:${state.activeProfileId || 'default'}`;
+      let formDraft = null;
+      try { formDraft = JSON.parse(sessionStorage.getItem(draftKey) || 'null'); } catch {}
+      function keepDraft(value) {
+        formDraft = value;
+        try {
+          if (value) sessionStorage.setItem(draftKey, JSON.stringify(value));
+          else sessionStorage.removeItem(draftKey);
+        } catch {}
+      }
+
 
       const topbar = document.createElement('div');
       topbar.className = 'customers-topbar';
@@ -172,12 +183,15 @@ export function createCustomersModule({ store }) {
       }
 
       function showForm(host, customer = null) {
+        const values = formDraft?.customerId === (customer?.id || null) ? formDraft : customer;
+        keepDraft({ customerId: customer?.id || null, name: values?.name || '', phone: values?.phone || '', area: values?.area || '', address: values?.address || '' });
         const form = document.createElement('div');
         form.className = 'workspace-card customer-edit-card';
-        const name = field('Name', 'customerEditName', customer?.name || '');
-        const phone = field('Phone', 'customerEditPhone', customer?.phone || '', { inputmode: 'tel' });
-        const area = field('Area', 'customerEditArea', customer?.area || '');
-        const address = field('Address', 'customerEditAddress', customer?.address || '', { multiline: true });
+        const name = field('Name', 'customerEditName', values?.name || '');
+        const phone = field('Phone', 'customerEditPhone', values?.phone || '', { inputmode: 'tel' });
+        const area = field('Area', 'customerEditArea', values?.area || '');
+        const address = field('Address', 'customerEditAddress', values?.address || '', { multiline: true });
+        for (const control of [name, phone, area, address]) control.input.addEventListener('input', () => keepDraft({ customerId: customer?.id || null, name: name.input.value, phone: phone.input.value, area: area.input.value, address: address.input.value }));
         const save = action(customer ? 'Save customer' : 'Add customer', 'primary');
         const cancel = action('Cancel');
         const actions = document.createElement('div');
@@ -186,6 +200,7 @@ export function createCustomersModule({ store }) {
           const nextName = name.input.value.trim();
           if (!nextName) { name.input.focus(); return; }
           const now = new Date().toISOString();
+          keepDraft(null);
           store.update((current) => {
             if (customer) {
               return { ...current, customers: current.customers.map((item) => item.id === customer.id ? { ...item, name: nextName, phone: phone.input.value.trim(), area: area.input.value.trim(), address: address.input.value.trim(), modifiedAt: now } : item) };
@@ -193,7 +208,7 @@ export function createCustomersModule({ store }) {
             return { ...current, customers: [...current.customers, { id: crypto.randomUUID(), name: nextName, phone: phone.input.value.trim(), area: area.input.value.trim(), address: address.input.value.trim(), createdAt: now, modifiedAt: now }] };
           });
         });
-        cancel.addEventListener('click', () => renderList());
+        cancel.addEventListener('click', () => { keepDraft(null); renderList(); });
         actions.append(save, cancel);
         form.append(name.wrap, phone.wrap, area.wrap, address.wrap, actions);
         host.replaceChildren(form);
@@ -201,6 +216,14 @@ export function createCustomersModule({ store }) {
 
       function renderList() {
         list.replaceChildren();
+        if (formDraft) {
+          const customer = formDraft.customerId ? state.customers.find((item) => item.id === formDraft.customerId) : null;
+          const holder = document.createElement('article');
+          holder.className = 'customer-row customer-new-row';
+          list.append(holder);
+          showForm(holder, customer);
+          return;
+        }
         const filtered = rows();
         const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
         page = Math.min(page, totalPages);

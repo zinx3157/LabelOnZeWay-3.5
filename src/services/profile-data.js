@@ -1,4 +1,4 @@
-import { activeProfileId } from '../domain/profiles.js?v=48';
+import { activeProfileId } from '../domain/profiles.js?v=49';
 export const PROFILE_COLLECTIONS = ['customers','parcels','archive','claims','inventory','stockMovements','settlements'];
 const key=(workspaceId,profileId)=>`lz35.profileData:${workspaceId||'local'}:${profileId}`;
 export function saveProfileData(state) {

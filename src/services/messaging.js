@@ -1,4 +1,4 @@
-import { normalizeMadagascarWhatsApp, renderTemplate, DEFAULT_NOTIFY_TEMPLATES } from '../domain/notifications.js?v=48';
+import { normalizeMadagascarWhatsApp, renderTemplate, DEFAULT_NOTIFY_TEMPLATES } from '../domain/notifications.js?v=49';
 
 function messageFor(parcel, kind = 'status', templates) {
   const tpl = { ...DEFAULT_NOTIFY_TEMPLATES, ...(templates || {}) };
