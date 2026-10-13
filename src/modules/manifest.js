@@ -149,12 +149,15 @@ export function createManifestModule({ store, services }) {
                 collect: parcel.collect ?? 0,
                 deliveryCharge: parcel.deliveryCharge ?? 0,
                 notes: parcel.notes || '',
+                printZeroAmounts:Boolean(parcel.printZeroAmounts),
               },
             },
           }));
           location.hash = '#/label';
         });
-        actionCell.append(edit);
+        const pdf=action('Label PDF');pdf.setAttribute('aria-label',`Label PDF ${parcel.pickId}`);pdf.addEventListener('click',()=>services.share.downloadLabelCopy(parcel));
+        const reprint=action('Reprint label');reprint.setAttribute('aria-label',`Reprint label ${parcel.pickId}`);reprint.addEventListener('click',async()=>{reprint.disabled=true;try{const result=await services.share.reprintLabelCopy(parcel,services.print);store.setState({ui:{...store.getState().ui,notice:result.status==='printed'?'Saved label sent to printer.':'Saved label queued for printing.'}})}catch(error){store.setState({ui:{...store.getState().ui,notice:error.message}})}finally{reprint.disabled=false}});
+        actionCell.append(edit,pdf,reprint);
         row.append(actionCell);
         body.append(row);
       }

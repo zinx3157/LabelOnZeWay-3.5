@@ -1,3 +1,4 @@
+import { printedLabelData } from './label-copy.js';
 function asciiText(value) {
   return String(value ?? '')
     .normalize('NFKD')
@@ -18,6 +19,7 @@ function qrCommands(data){const body=encodeText(compactQrData(data));const n=bod
 function localStamp(value=new Date()){const d=value instanceof Date?value:new Date(value);return{date:`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`,time:`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};}
 function nextDay(value=new Date()){const d=value instanceof Date?new Date(value):new Date(value);d.setDate(d.getDate()+1);return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;}
 export function labelEscPos(parcel,options={}){
+ parcel=printedLabelData(parcel);
  const created=parcel.createdAt?new Date(parcel.createdAt):new Date(); const stamp=localStamp(created); const qrData=options.trackingUrl||parcel.trackingUrl||parcel.trackingToken||parcel.pickId||'LZWay'; const addressLines=wrap(parcel.customer?.address||'',42,3); const collect=Number(parcel.collect||0).toLocaleString('fr-FR').replace(/\u202f/g,' '); const delivery=Number(parcel.deliveryCharge||0).toLocaleString('fr-FR').replace(/\u202f/g,' '); const paymentMode=asciiText(parcel.paymentMode||'Especes'); const divider='------------------------------------------'; const parts=[CMD.init,CMD.left,CMD.normal];
  parts.push(CMD.boldOn,line('LZWAY'),CMD.boldOff,line(leftRight('Ship Smarter. Deliver Further.',stamp.time)),line(divider));
  parts.push(CMD.boldOn,line(leftRight('PICK','QTY')),CMD.double,line(leftRight(parcel.pickId,String(parcel.qty),21)),CMD.normal,CMD.boldOff,line(divider));

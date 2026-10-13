@@ -2,7 +2,7 @@ import { action, field } from '../components/form.js';
 import { heading, textStack } from '../components/view.js';
 import { podViewer } from '../components/pod-view.js';
 
-export function createArchiveModule({ store }) {
+export function createArchiveModule({ store,services }) {
   return {
     render(state) {
       const section = document.createElement('section');
@@ -67,6 +67,8 @@ export function createArchiveModule({ store }) {
           const card = document.createElement('article');
           card.className = 'card';
           card.dataset.archiveId = item.id;
+          const pdf=action('Label PDF');pdf.setAttribute('aria-label',`Label PDF ${item.pickId}`);pdf.addEventListener('click',()=>services.share.downloadLabelCopy(item));
+          const reprint=action('Reprint label');reprint.addEventListener('click',async()=>{try{const result=await services.share.reprintLabelCopy(item,services.print);store.setState({ui:{...store.getState().ui,notice:result.status==='printed'?'Archived label sent to printer.':'Archived label queued.'}})}catch(error){store.setState({ui:{...store.getState().ui,notice:error.message}})}});
           const restore = action('Restore');
           restore.addEventListener('click', () => {
             store.update((current) => ({
@@ -79,7 +81,7 @@ export function createArchiveModule({ store }) {
             ['strong', item.pickId || 'Unknown Pick ID'],
             ['span', item.customer?.name || 'Unknown customer'],
             ['span', `${item.status || 'archived'} · ${item.archivedAt ? new Date(item.archivedAt).toLocaleString() : 'Unknown archive date'}`],
-          ]), ...(item.pod ? [podViewer(item.pod)] : []), restore);
+          ]), ...(item.pod ? [podViewer(item.pod)] : []), pdf,reprint,restore);
           list.append(card);
         }
       };

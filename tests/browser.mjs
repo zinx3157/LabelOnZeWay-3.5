@@ -88,17 +88,20 @@ try {
     await page.getByRole('button', { name: 'Continue to parcel' }).click();
     await page.locator('input[name="qty"]').fill('4');
     await page.locator('input[name="unitPrice"]').fill('10000');
+    await page.getByRole('checkbox', { name: 'Print zero amounts on label' }).check();
     await page.getByRole('button', { name: 'Review label' }).click();
+    assert.match(await page.locator('.thermal-collect-main').innerText(), /0 Ar/);
     await page.getByRole('button', { name: 'Update label' }).click();
     await page.locator('table').waitFor();
     const editedIdentity = await page.evaluate(() => {
       const state = JSON.parse(localStorage.getItem('lzway.3.5.state.v1'));
-      return { count: state.parcels.length, id: state.parcels[0].id, pickId: state.parcels[0].pickId, trackingToken: state.parcels[0].trackingToken, collect: state.parcels[0].collect };
+      return { count: state.parcels.length, id: state.parcels[0].id, pickId: state.parcels[0].pickId, trackingToken: state.parcels[0].trackingToken, collect: state.parcels[0].collect, printedCollect:state.parcels[0].labelCopy.parcel.collect };
     });
     assert.equal(editedIdentity.count, 1, `${viewport.name} editing must not duplicate parcel`);
     assert.equal(editedIdentity.id, originalIdentity.id, `${viewport.name} edit must preserve parcel id`);
     assert.equal(editedIdentity.pickId, originalIdentity.pickId, `${viewport.name} edit must preserve Pick ID`);
     assert.equal(editedIdentity.trackingToken, originalIdentity.trackingToken, `${viewport.name} edit must preserve tracking token`);
+    assert.equal(editedIdentity.printedCollect,0,`${viewport.name} saved label copy hides amounts`);
     assert.equal(editedIdentity.collect, 40000, `${viewport.name} edited Collect must recalculate`);
 
     for (const lifecycleStatus of ['dispatch','in-transit','delivery','exception','delivered']) {

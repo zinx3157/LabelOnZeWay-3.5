@@ -1,3 +1,4 @@
+import { printedLabelData } from '../domain/label-copy.js';
 import { field, action } from '../components/form.js';
 import { heading } from '../components/view.js';
 import { makeId, makePickId } from '../domain/ids.js';
@@ -108,6 +109,7 @@ function qrPreview(seedValue) {
 
 function labelPreview(draft, state) {
   const now = new Date();
+  draft={...draft,parcel:printedLabelData(draft.parcel)};
   const pickId = previewPickId(state, draft);
   const preview = el('article', 'label-preview approved-label-preview');
   const header = el('div', 'thermal-label-header');
@@ -649,6 +651,7 @@ function renderBatchScan({ panel, state, services, store, batchState }) {
       approved.forEach((item) => {
         const built = buildBatchParcel(item, current, customers, parcels);
         customers = built.customers;
+        built.parcel.labelCopy={savedAt:new Date().toISOString(),parcel:printedLabelData(built.parcel),escposBase64:bytesToBase64(labelEscPos(built.parcel,{trackingUrl:trackingUrl(built.parcel.trackingToken)}))};
         parcels.push(built.parcel);
         item.parcelId = built.parcel.id;
         item.status = 'created';
@@ -758,6 +761,9 @@ export function createLabelModule({ store, services }) {
         const qty = field('Quantity', 'qty', draft.parcel.qty, { type: 'number', inputmode: 'numeric', min: 1 });
         const price = field('Unit price (Ar)', 'unitPrice', draft.parcel.unitPrice, { type: 'number', inputmode: 'decimal', min: 0 });
         const delivery = field('Delivery charge (Ar)', 'deliveryCharge', draft.parcel.deliveryCharge || 0, { type: 'number', inputmode: 'decimal', min: 0 });
+        const zeroWrap=document.createElement('label');zeroWrap.className='label-print-option';
+        const zero=document.createElement('input');zero.type='checkbox';zero.checked=Boolean(draft.parcel.printZeroAmounts);zero.setAttribute('aria-label','Print zero amounts on label');
+        zeroWrap.append(zero,document.createTextNode(' Print 0 Ar on label — keep actual amounts in manifest'));
         const notes = field('Parcel notes', 'notes', draft.parcel.notes, { multiline: true });
         const total = document.createElement('div');
         total.className = 'calculation';
@@ -781,11 +787,12 @@ export function createLabelModule({ store, services }) {
             collect: calculateCollect(qty.input.value, price.input.value),
             deliveryCharge: Math.max(0, Number(delivery.input.value) || 0),
             notes: notes.input.value.trim(),
+            printZeroAmounts:zero.checked,
           };
           store.update((current) => ({ ...current, labelDraft: { ...current.labelDraft, step: 3, parcel } }));
         });
         actions.append(back, next);
-        panel.append(qty.wrap, price.wrap, delivery.wrap, total, notes.wrap, actions);
+        panel.append(qty.wrap, price.wrap, delivery.wrap, total, zeroWrap, notes.wrap, actions);
       }
 
       if (draft.step === 3) {
@@ -794,11 +801,12 @@ export function createLabelModule({ store, services }) {
         actions.className = 'button-row';
         const back = action('Edit parcel');
         const save = action(draft.editParcelId ? 'Update label' : 'Save label', 'primary');
-        const print = action('Print 72mm test');
+        const print = action('Print label');
+        print.disabled=Boolean(state.ui?.printingLabel);
         back.addEventListener('click', () => store.update((current) => ({ ...current, labelDraft: { ...current.labelDraft, step: 2 } })));
         const materialize = (current) => {
           const existing = current.labelDraft.editParcelId ? current.parcels.find((item) => item.id === current.labelDraft.editParcelId) : null;
-          return {
+          const parcel = {
             ...(existing || {}),
             id: existing?.id || makeId('parcel'),
             pickId: existing?.pickId || makePickId([current.parcels, current.archive]),
@@ -810,15 +818,18 @@ export function createLabelModule({ store, services }) {
             createdAt: existing?.createdAt || new Date().toISOString(),
             modifiedAt: new Date().toISOString(),
           };
+          parcel.labelCopy={savedAt:new Date().toISOString(),parcel:printedLabelData(parcel),escposBase64:bytesToBase64(labelEscPos(parcel,{trackingUrl:trackingUrl(parcel.trackingToken)}))};
+          return parcel;
         };
         print.addEventListener('click', async () => {
           const parcel = materialize(store.getState());
+          store.update(current=>({...current,ui:{...current.ui,printingLabel:true},parcels:current.parcels.some(p=>p.id===parcel.id)?current.parcels.map(p=>p.id===parcel.id?parcel:p):[...current.parcels,parcel],labelDraft:{...current.labelDraft,editParcelId:parcel.id}}));
           try {
             const result = await services.print.printWithRetry({ data: bytesToBase64(labelEscPos(parcel, { trackingUrl: trackingUrl(parcel.trackingToken) })), labels: 1 }, { attempts: 2 });
-            print.textContent = result.adapter?.startsWith('cloud') ? 'Queued to cloud' : 'Printed';
+            store.setState({ui:{...store.getState().ui,printingLabel:false,notice:result.status==='printed'?'Label sent to printer; copy saved.':result.adapter?.startsWith('cloud')?'Label queued in cloud; copy saved.':'Label sent to printer; copy saved.'}});
           } catch (error) {
             print.textContent = 'Print failed';
-            store.setState({ ui: { ...store.getState().ui, notice: error.message } });
+            store.setState({ ui: { ...store.getState().ui, printingLabel:false, notice: error.message } });
           }
         });
         save.addEventListener('click', () => {

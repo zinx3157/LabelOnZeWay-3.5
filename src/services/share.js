@@ -1,3 +1,5 @@
+import { savedLabelData } from '../domain/label-copy.js';
+import { labelEscPos, bytesToBase64 } from '../domain/escpos.js';
 import { labelPdfBytes } from '../domain/pdf.js';
 
 function trackingUrl(token) {
@@ -30,5 +32,7 @@ export function createShareService() {
     return { mode: 'download', secureLink, fileName: file.name };
   }
 
-  return { shareParcel, trackingUrl };
+  function downloadLabelCopy(parcel){const file=new File([labelPdfBytes(savedLabelData(parcel))],`${parcel.pickId||'label'}-copy.pdf`,{type:'application/pdf'});downloadFile(file);return{fileName:file.name};}
+  async function reprintLabelCopy(parcel,print){const data=parcel.labelCopy?.escposBase64||bytesToBase64(labelEscPos(savedLabelData(parcel),{trackingUrl:trackingUrl(parcel.trackingToken)}));return print.printWithRetry({data,labels:1},{attempts:1});}
+  return { shareParcel, trackingUrl,downloadLabelCopy,reprintLabelCopy };
 }

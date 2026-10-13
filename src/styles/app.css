@@ -41,3 +41,5 @@ button { color: inherit; }
 .theme-toggle:hover,.theme-toggle:focus-visible { color: var(--text); border-color: var(--accent); outline: none; }
 
 .profile-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.profile-copy{flex:1;min-width:0;overflow-wrap:anywhere}.profile-copy small{display:block;margin-top:6px}.profile-row button{flex-shrink:0;max-width:100%}
+
+.label-print-option{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid var(--line);border-radius:10px}.label-print-option input{width:auto;flex-shrink:0}

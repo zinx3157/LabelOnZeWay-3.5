@@ -1,8 +1,10 @@
+import { printedLabelData } from './label-copy.js';
 function pdfEscape(value) {
   return String(value ?? '').replaceAll('\\', '\\\\').replaceAll('(', '\\(').replaceAll(')', '\\)').replaceAll(/[^\x20-\x7E]/g, '?');
 }
 
 export function labelPdfBytes(parcel, brand = 'LZWay') {
+  parcel=printedLabelData(parcel);
   const lines = [
     brand,
     `PICK ${parcel.pickId || 'PENDING'}`,
@@ -12,6 +14,7 @@ export function labelPdfBytes(parcel, brand = 'LZWay') {
     `QTY ${parcel.qty ?? 1}`,
     `UNIT ${parcel.unitPrice ?? 0} AR`,
     `COLLECT ${parcel.collect ?? 0} AR`,
+    `DELIVERY ${parcel.deliveryCharge ?? 0} AR`,
     parcel.status ? `STATUS ${String(parcel.status).toUpperCase()}` : '',
     parcel.notes || '',
   ].filter(Boolean);
