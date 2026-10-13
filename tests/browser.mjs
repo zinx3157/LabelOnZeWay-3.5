@@ -177,18 +177,20 @@ try {
       const key = 'lzway.3.5.state.v1';
       const state = JSON.parse(localStorage.getItem(key));
       state.workspace = { id: 'uat-workspace', name: 'UAT Company', profileId: 'ps_default' };
+      state.profiles = [{id:'ps_default',name:'UAT Company'},{id:'ops_uat',name:'Ops UAT'}];
+      state.activeProfileId = 'ps_default';
       localStorage.setItem(key, JSON.stringify(state));
     });
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.goto(`${BASE}#/profiles`, { waitUntil: 'domcontentloaded' });
-    await page.locator('input[name="profileId"]').fill('ops_uat');
-    await page.getByRole('button', { name: 'Use profile' }).click();
+    await page.getByRole('combobox', { name: 'Company profile' }).selectOption('ops_uat');
+    await page.getByRole('button', { name: 'Switch company', exact: true }).click();
     assert.match(await page.locator('.topbar').innerText(), /UAT Company \/ ops_uat/);
     await page.goto(`${BASE}#/manifest`, { waitUntil: 'domcontentloaded' });
     assert.match(await page.locator('body').innerText(), /No parcels in the current manifest/);
     await page.goto(`${BASE}#/profiles`, { waitUntil: 'domcontentloaded' });
-    await page.locator('input[name="profileId"]').fill('ps_default');
-    await page.getByRole('button', { name: 'Use profile' }).click();
+    await page.getByRole('combobox', { name: 'Company profile' }).selectOption('ps_default');
+    await page.getByRole('button', { name: 'Switch company', exact: true }).click();
     await page.goto(`${BASE}#/manifest`, { waitUntil: 'domcontentloaded' });
     assert.match(await page.locator('body').innerText(), /Restored Customer/);
 

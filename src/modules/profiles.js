@@ -1,24 +1,21 @@
-import { heading } from '../components/view.js';
-import { field, action } from '../components/form.js';
-
-function profileKey(workspaceId, profileId) { return `lz35.profileData:${workspaceId}:${profileId}`; }
-function emptyProfile() { return { customers: [], parcels: [], archive: [], claims: [], settings: { name: '', manifestEmail: '' } }; }
-function readProfile(workspaceId, profileId) { try { const parsed = JSON.parse(localStorage.getItem(profileKey(workspaceId, profileId)) || 'null'); if (!parsed) return emptyProfile(); return { customers: Array.isArray(parsed.customers) ? parsed.customers : [], parcels: Array.isArray(parsed.parcels) ? parsed.parcels : [], archive: Array.isArray(parsed.archive) ? parsed.archive : [], claims: Array.isArray(parsed.claims) ? parsed.claims : [], settings: parsed.settings && typeof parsed.settings === 'object' ? parsed.settings : { name: '', manifestEmail: '' } }; } catch { return emptyProfile(); } }
-function writeProfile(workspaceId, profileId, state) { localStorage.setItem(profileKey(workspaceId, profileId), JSON.stringify({ customers: state.customers || [], parcels: state.parcels || [], archive: state.archive || [], claims: state.claims || [], settings: state.profileSettings || { name: '', manifestEmail: '' }, savedAt: new Date().toISOString() })); }
-
-export function createProfilesModule({ store }) {
-  return { render(state) {
-    const section = document.createElement('section'); section.className = 'screen'; section.append(heading('Profiles', 'Company identity, manifest delivery settings and isolated operational data.'));
-    const card = document.createElement('div'); card.className = 'workspace-card';
-    const workspace = document.createElement('p'); workspace.textContent = state.workspace ? `Workspace: ${state.workspace.name}` : 'No cloud workspace selected.';
-    const profile = field('Profile ID', 'profileId', state.workspace?.profileId || 'ps_default', { placeholder: 'ps_default' });
-    const company = field('Company / profile name', 'profileName', state.profileSettings?.name || state.workspace?.name || 'LZWay');
-    const manifestEmail = field('Daily manifest email', 'manifestEmail', state.profileSettings?.manifestEmail || '', { type: 'email', placeholder: 'operations@example.com' });
-    const supportPhone = field('Support WhatsApp number', 'supportPhone', state.profileSettings?.supportPhone || '', { placeholder: '034 00 000 00' });
-    const saveSettings = action('Save profile settings', 'primary'); const use = action('Use profile'); const remove = action('Delete local profile'); const status = document.createElement('p');
-    saveSettings.addEventListener('click', () => { const current = store.getState(); const settings = { name: company.input.value.trim() || 'LZWay', manifestEmail: manifestEmail.input.value.trim(), supportPhone: supportPhone.input.value.trim() }; store.setState({ profileSettings: settings }); if (current.workspace?.id) writeProfile(current.workspace.id, current.workspace.profileId || 'ps_default', { ...current, profileSettings: settings }); status.textContent = 'Profile settings saved. Push local to publish them for daily manifest close.'; });
-    use.addEventListener('click', () => { const id = profile.input.value.trim() || 'ps_default'; const current = store.getState(); if (!current.workspace) { status.textContent = 'Sign in and select a workspace before changing the cloud profile.'; return; } const currentId = current.workspace.profileId || 'ps_default'; if (id === currentId) { status.textContent = `Profile ${id} already selected.`; return; } writeProfile(current.workspace.id, currentId, current); const target = readProfile(current.workspace.id, id); store.setState({ activeProfileId:id, workspace: { ...current.workspace, profileId: id }, customers: target.customers, parcels: target.parcels, archive: target.archive, claims: target.claims, profileSettings: target.settings, sync: { status: current.session ? 'ready' : 'local-only', conflict: false } }); status.textContent = `Profile ${id} selected. Local data isolated from ${currentId}.`; });
-    remove.addEventListener('click', () => { const current = store.getState(); if (!current.workspace?.id) { status.textContent = 'No workspace selected.'; return; } const id = profile.input.value.trim() || current.workspace.profileId || 'ps_default'; if (id === 'ps_default') { status.textContent = 'The default profile is protected and cannot be deleted.'; return; } localStorage.removeItem(profileKey(current.workspace.id, id)); if ((current.workspace.profileId || 'ps_default') === id) { const fallback = readProfile(current.workspace.id, 'ps_default'); store.setState({ workspace: { ...current.workspace, profileId: 'ps_default' }, customers: fallback.customers, parcels: fallback.parcels, archive: fallback.archive, claims: fallback.claims, profileSettings: fallback.settings, sync: { status: current.session ? 'ready' : 'local-only', conflict: false } }); profile.input.value = 'ps_default'; company.input.value = fallback.settings.name || ''; manifestEmail.input.value = fallback.settings.manifestEmail || ''; supportPhone.input.value = fallback.settings.supportPhone || ''; status.textContent = `Profile ${id} deleted locally. Fell back safely to ps_default.`; } else status.textContent = `Profile ${id} deleted locally.`; });
-    const actions = document.createElement('div'); actions.className = 'button-row'; actions.append(saveSettings, use, remove); card.append(workspace, profile.wrap, company.wrap, manifestEmail.wrap, supportPhone.wrap, actions, status); section.append(card); return section;
-  }};
+import {heading} from '../components/view.js';
+import {field,action} from '../components/form.js';
+import {profileGroups,activeProfileId} from '../domain/profiles.js';
+import {saveProfileData,switchProfile} from '../services/profile-data.js';
+export function createProfilesModule({store,services}) {
+ return {render(state){
+  const section=document.createElement('section');section.className='screen';section.append(heading('Profiles','Company details and separate operational data.'));
+  const card=document.createElement('div');card.className='workspace-card';
+  const label=document.createElement('label');label.textContent='Company profile';
+  const select=document.createElement('select');select.className='select';select.setAttribute('aria-label','Company profile');
+  const groups=profileGroups(state);for(const profile of groups){const option=document.createElement('option');option.value=profile.id;option.textContent=profile.name+(profile.active?' · Active':'');option.selected=profile.active;select.append(option);}label.append(select);
+  const company=field('Company name','profileName',state.profileSettings?.name||groups.find(p=>p.active)?.name||'');
+  const email=field('Daily manifest email','manifestEmail',state.profileSettings?.manifestEmail||'',{type:'email'});
+  const phone=field('Support WhatsApp number','supportPhone',state.profileSettings?.supportPhone||'');
+  const save=action('Save company details','primary'),use=action('Switch company');
+  const notice=document.createElement('p');notice.textContent=state.ui?.notice||'';
+  save.addEventListener('click',()=>{const current=store.getState(),id=activeProfileId(current),name=company.input.value.trim();if(!name){notice.textContent='Enter a company name.';return;}store.setState({profileSettings:{...current.profileSettings,name,manifestEmail:email.input.value.trim(),supportPhone:phone.input.value.trim(),modifiedAt:new Date().toISOString()},profiles:(current.profiles||[]).map(p=>(groups.find(g=>g.active)?.aliases||[id]).includes(String(p.id))?{...p,name,company:name}:p),ui:{...current.ui,notice:'Company details saved.'}});saveProfileData(store.getState());});
+  use.addEventListener('click',async()=>{use.disabled=true;try{await switchProfile({store,services},groups.find(p=>p.id===select.value))}catch(error){store.setState({ui:{...store.getState().ui,notice:error.message}})}finally{use.disabled=false}});
+  const actions=document.createElement('div');actions.className='button-row';actions.append(use,save);card.append(label,company.wrap,email.wrap,phone.wrap,actions,notice);section.append(card);return section;
+ }};
 }

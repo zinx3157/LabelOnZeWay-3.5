@@ -1,52 +1,19 @@
 import { action } from '../components/form.js';
-
-export function renderProfileManager(state, store) {
-  const card = document.createElement('article');
-  card.className = 'workspace-card';
-  const title = document.createElement('h2');
-  title.textContent = 'Company Profiles';
-  const help = document.createElement('p');
-  help.textContent = 'Profiles saved by the 2.5.4 release on this browser are imported automatically and kept available in 3.5.';
-  card.append(title, help);
-
-  const profiles = Array.isArray(state.profiles) ? state.profiles : [];
-  if (!profiles.length) {
-    const empty = document.createElement('p');
-    empty.textContent = 'No legacy company profiles found on this device.';
-    card.append(empty);
-    return card;
-  }
-
-  const list = document.createElement('div');
-  list.className = 'card-list';
-  for (const profile of profiles) {
-    const row = document.createElement('div');
-    row.className = 'card';
-    const copy = document.createElement('div');
-    const name = document.createElement('strong');
-    name.textContent = profile.name || profile.company || profile.id;
-    const meta = document.createElement('small');
-    const active = String(profile.id) === String(state.activeProfileId || '');
-    meta.textContent = active ? 'Active profile' : (profile.migratedFrom === '2.5.4' ? 'Imported from 2.5.4' : 'Saved profile');
-    copy.append(name, document.createElement('br'), meta);
-    row.append(copy);
-    if (!active) {
-      const open = action('Open / Switch', 'primary');
-      open.addEventListener('click', () => {
-        const id = String(profile.id);
-        localStorage.setItem('lzb2.profile', id);
-        localStorage.setItem('lz.profile', id);
-        store.setState({
-          activeProfileId: id,
-          workspace: store.getState().workspace ? {...store.getState().workspace, profileId:id} : null,
-          profileSettings: { ...store.getState().profileSettings, name: profile.name || profile.company || id },
-          ui: { ...store.getState().ui, notice: `Active profile: ${profile.name || profile.company || id}` },
-        });
-      });
-      row.append(open);
-    }
+import { profileGroups } from '../domain/profiles.js';
+import { switchProfile } from '../services/profile-data.js';
+export function renderProfileManager(state, store, services) {
+  const card=document.createElement('article');card.className='workspace-card';
+  const title=document.createElement('h2');title.textContent='Company Profiles';
+  const help=document.createElement('p');help.textContent='Choose the company whose customers, parcels and stock you want to use.';
+  card.append(title,help);
+  const list=document.createElement('div');list.className='card-list';
+  for(const profile of profileGroups(state)){
+    const row=document.createElement('div');row.className='card profile-row';
+    const copy=document.createElement('div');copy.className='profile-copy';
+    const name=document.createElement('strong');name.textContent=profile.name;
+    const meta=document.createElement('small');meta.textContent=profile.active?'Active company':'Saved company';copy.append(name,meta);row.append(copy);
+    if(!profile.active){const open=action('Switch company','primary');open.addEventListener('click',async()=>{open.disabled=true;try{await switchProfile({store,services},profile)}catch(error){store.setState({ui:{...store.getState().ui,notice:error.message}})}finally{open.disabled=false}});row.append(open);}
     list.append(row);
   }
-  card.append(list);
-  return card;
+  card.append(list);return card;
 }

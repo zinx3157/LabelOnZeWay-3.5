@@ -26,7 +26,7 @@ export function createShell({ state, navigate, content, store }) {
   const brandName = document.createElement('strong');
   brandName.textContent = state.workspace?.name || 'LZWay';
   const brandVersion = document.createElement('span');
-  brandVersion.textContent = `3.5 · ${state.activeProfileId || state.workspace?.profileId || 'ps_default'}`;
+  brandVersion.textContent = `3.5 · ${state.workspace?.profileId || state.activeProfileId || 'ps_default'}`;
   brand.append(brandName, brandVersion);
   const primary = document.createElement('nav');
   primary.className = 'nav-primary';
@@ -54,7 +54,7 @@ export function createShell({ state, navigate, content, store }) {
   sync.textContent = `Sync: ${state.sync.status}`;
   const profile = document.createElement('span');
   profile.className = 'status-profile';
-  profile.textContent = `${state.workspace?.name || 'Local'} / ${state.activeProfileId || state.workspace?.profileId || 'ps_default'}`;
+  profile.textContent = `${state.workspace?.name || 'Local'} / ${state.workspace?.profileId || state.activeProfileId || 'ps_default'}`;
   status.append(dot, connectivity, separator, sync, separator.cloneNode(true), profile);
   setLang(state.ui?.lang === 'mg' ? 'mg' : 'en');
   document.documentElement.lang = getLang();

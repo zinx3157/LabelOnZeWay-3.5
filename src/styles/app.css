@@ -39,3 +39,5 @@ button { color: inherit; }
 }
 .theme-toggle { border: 1px solid var(--border-strong); border-radius: 999px; background: var(--surface-2); color: var(--muted); padding: .42rem .85rem; margin-left: .75rem; cursor: pointer; font-size: .82rem; }
 .theme-toggle:hover,.theme-toggle:focus-visible { color: var(--text); border-color: var(--accent); outline: none; }
+
+.profile-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.profile-copy{flex:1;min-width:0;overflow-wrap:anywhere}.profile-copy small{display:block;margin-top:6px}.profile-row button{flex-shrink:0;max-width:100%}

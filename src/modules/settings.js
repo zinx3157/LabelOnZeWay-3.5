@@ -29,7 +29,7 @@ export function createSettingsModule({ store, services }) {
       const grid = document.createElement('div');
       grid.className = 'settings-grid';
 
-      const profiles = renderProfileManager(state, store);
+      const profiles = renderProfileManager(state, store, services);
 
       const cloud = document.createElement('article');
       cloud.className = 'workspace-card';
