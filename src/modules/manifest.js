@@ -53,6 +53,7 @@ export function createManifestModule({ store, services }) {
       const a4 = action('Print A4');
       const closeDelivered = action('Close delivered');
       const outputStatus = document.createElement('span');
+      outputStatus.textContent = state.ui?.notice || '';
       thermal.addEventListener('click', async () => {
         thermal.disabled = true;
         outputStatus.textContent = 'Sending manifest…';
@@ -67,6 +68,7 @@ export function createManifestModule({ store, services }) {
           outputStatus.textContent = `Manifest print failed: ${error.message}`;
         } finally {
           thermal.disabled = false;
+          store.setState({ui:{...store.getState().ui,notice:outputStatus.textContent}});
         }
       });
       a4.addEventListener('click', () => window.print());

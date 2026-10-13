@@ -185,6 +185,7 @@ export function createSettingsModule({ store, services }) {
           result.textContent = `Test print failed: ${error.message}`;
         } finally {
           test.disabled = false;
+          store.setState({ui:{...store.getState().ui,notice:result.textContent}});
         }
       });
 

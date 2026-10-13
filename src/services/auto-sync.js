@@ -18,11 +18,11 @@ export function startAutoSync({store,sync,intervalMs=10000,debounceMs=700,timers
     if(nextScope&&dirty&&!busy)schedule();
   });
   async function run(){
-    if(stopped||busy)return;const state=store.getState();if(!scope(state)||state.online===false)return;
+    if(stopped||busy)return;if(globalThis.document?.activeElement?.matches?.('input,textarea,select,[contenteditable="true"]'))return;const state=store.getState();if(!scope(state)||state.online===false)return;
     busy=true;const startedScope=scope(state);
     try {
       if(dirty||sync.pending()){dirty=false;await sync.pushSnapshot({reason:'automatic'});}
-      if(scope(store.getState())===startedScope&&!dirty)await sync.pullSnapshot();
+      if(scope(store.getState())===startedScope&&!dirty)await sync.pullSnapshot({silent:true});
     } catch(error){dirty=true;store.setState({sync:{...store.getState().sync,status:'error',message:error?.message||'Automatic sync failed'}});}
     finally{busy=false;}
   }
