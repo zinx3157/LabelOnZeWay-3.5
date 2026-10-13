@@ -70,6 +70,7 @@ export function createManifestModule({ store, services }) {
       selection.textContent = '0 selected';
       const status = document.createElement('select');
       status.className = 'select';
+      status.setAttribute('aria-label', 'Parcel status');
       PARCEL_STATUSES.forEach((item) => {
         const option = document.createElement('option');
         option.value = item;

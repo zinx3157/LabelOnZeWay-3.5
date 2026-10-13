@@ -80,6 +80,17 @@ try {
     assert.match(await page.locator('body').innerText(), /UAT Customer/i);
     assert.equal(await page.locator('body script').count(), 1, 'Only the application module script should exist');
 
+    const currentDate = await page.getByLabel('Manifest date', { exact: true }).inputValue();
+    await page.evaluate(() => {
+      const store = window.__LZWAY_STORE__;
+      store.update(state => ({ ...state, parcels: [...state.parcels, { ...state.parcels[0], id: 'older-date-test', pickId: 'OLDER-DATE', createdAt: '2020-01-01T10:00:00Z' }] }));
+    });
+    assert.equal(await page.getByText('OLDER-DATE', { exact: true }).count(), 0, 'Other dates are hidden');
+    await page.getByLabel('Manifest date', { exact: true }).selectOption('2020-01-01');
+    assert.equal(await page.getByText('OLDER-DATE', { exact: true }).count(), 1, 'Older daily manifest is available');
+    await page.getByLabel('Manifest date', { exact: true }).selectOption(currentDate);
+    await page.evaluate(() => window.__LZWAY_STORE__.update(state => ({ ...state, parcels: state.parcels.filter(parcel => parcel.id !== 'older-date-test') })));
+
     const originalIdentity = await page.evaluate(() => {
       const state = JSON.parse(localStorage.getItem('lzway.3.5.state.v1'));
       return { id: state.parcels[0].id, pickId: state.parcels[0].pickId, trackingToken: state.parcels[0].trackingToken };
@@ -110,7 +121,7 @@ try {
     for (const lifecycleStatus of ['dispatch','in-transit','delivery','exception','delivered']) {
       const checkbox = page.locator('tbody input[type="checkbox"]').first();
       await checkbox.check();
-      await page.locator('select.select').selectOption(lifecycleStatus);
+      await page.getByLabel('Parcel status', { exact: true }).selectOption(lifecycleStatus);
       await page.getByRole('button', { name: 'Update selected' }).click();
       assert.match((await page.locator('tbody').innerText()).toLowerCase(), new RegExp(lifecycleStatus.replace('-', '[ -]?')));
     }
