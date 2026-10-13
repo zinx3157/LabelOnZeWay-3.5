@@ -1,4 +1,4 @@
-import { printedLabelData } from './label-copy.js?v=50';
+import { printedLabelData } from './label-copy.js?v=51';
 function pdfEscape(value) {
   return String(value ?? '').replaceAll('\\', '\\\\').replaceAll('(', '\\(').replaceAll(')', '\\)').replaceAll(/[^\x20-\x7E]/g, '?');
 }

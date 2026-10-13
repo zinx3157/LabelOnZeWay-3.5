@@ -1,4 +1,4 @@
-import { t, setLang, getLang } from '../domain/i18n.js?v=50';
+import { t, setLang, getLang } from '../domain/i18n.js?v=51';
 const PRIMARY = [
   ['home','Home'],['label','New Label'],['manifest','Manifest'],['batch','Batch'],['tracking','Tracking'],['customers','Customers'],['stock','Stock']
 ];
@@ -91,7 +91,7 @@ export function createShell({ state, navigate, content, store }) {
   const mobileNav = document.createElement('nav');
   mobileNav.className = 'mobile-nav';
   mobileNav.setAttribute('aria-label','Mobile');
-  [['home','Home'],['label','Label'],['manifest','Manifest'],['stock','Stock'],['settings','More']]
+  [['home','Home'],['label','Label'],['manifest','Manifest'],['customers','Customers'],['settings','More']]
     .forEach(([route,label]) => mobileNav.append(navButton(route,label,state.route,navigate)));
   main.append(header, stage, mobileNav);
   shell.append(sidebar, main);

@@ -1,9 +1,9 @@
-import {deleteManifestParcels} from '../domain/manifest-delete.js?v=50';
-import { formatAr } from '../domain/money.js?v=50';
-import { PARCEL_STATUSES, updateParcelStatuses } from '../domain/manifest.js?v=50';
-import { bytesToBase64, manifestEscPos } from '../domain/escpos.js?v=50';
-import { action } from '../components/form.js?v=50';
-import { heading } from '../components/view.js?v=50';
+import {deleteManifestParcels} from '../domain/manifest-delete.js?v=51';
+import { formatAr } from '../domain/money.js?v=51';
+import { PARCEL_STATUSES, updateParcelStatuses } from '../domain/manifest.js?v=51';
+import { bytesToBase64, manifestEscPos } from '../domain/escpos.js?v=51';
+import { action } from '../components/form.js?v=51';
+import { heading } from '../components/view.js?v=51';
 
 function cell(label, value) {
   const td = document.createElement('td');
@@ -12,12 +12,21 @@ function cell(label, value) {
   return td;
 }
 
+function manifestDate(parcel) {
+  const date = new Date(parcel.createdAt);
+  if (Number.isNaN(date.getTime())) return 'Undated';
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Indian/Antananarivo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date);
+  const value = type => parts.find(part => part.type === type).value;
+  return `${value('year')}-${value('month')}-${value('day')}`;
+}
+
 export function createManifestModule({ store, services }) {
+  let selectedDate = '';
   return {
     render(state) {
       const section = document.createElement('section');
       section.className = 'screen manifest-screen';
-      section.append(heading('Manifest', 'Unified operational manifest with bulk status updates.'));
+      section.append(heading('Manifest', 'Daily manifests · dates use Madagascar time.'));
 
       if (!state.parcels.length) {
         const empty = document.createElement('div');
@@ -28,6 +37,26 @@ export function createManifestModule({ store, services }) {
         return section;
       }
 
+      const dates = [...new Set(state.parcels.map(manifestDate))].sort().reverse();
+      if (!dates.includes(selectedDate)) selectedDate = dates.find(date => date !== 'Undated') || dates[0];
+      const dateBar = document.createElement('label');
+      dateBar.className = 'manifest-date-bar';
+      dateBar.append('Manifest date');
+      const dateSelect = document.createElement('select');
+      dateSelect.className = 'select';
+      dateSelect.setAttribute('aria-label', 'Manifest date');
+      for (const date of dates) {
+        const option = document.createElement('option');
+        option.value = date;
+        option.textContent = `${date} · ${state.parcels.filter(parcel => manifestDate(parcel) === date).length} parcels`;
+        dateSelect.append(option);
+      }
+      dateSelect.value = selectedDate;
+      dateSelect.addEventListener('change', () => { selectedDate = dateSelect.value; store.setState({}); });
+      dateBar.append(dateSelect);
+      section.append(dateBar);
+      const visibleDate = selectedDate;
+      const forDate = parcel => manifestDate(parcel) === visibleDate;
       const selected = new Set();
       const remove = ids => {
         if(!ids.length)return;
@@ -66,7 +95,7 @@ export function createManifestModule({ store, services }) {
         thermal.disabled = true;
         outputStatus.textContent = 'Sending manifest…';
         try {
-          const parcels = store.getState().parcels.filter((parcel) => !selected.size || selected.has(parcel.id));
+          const parcels = store.getState().parcels.filter((parcel) => forDate(parcel) && (!selected.size || selected.has(parcel.id)));
           const mode = 'auto';
           const result = await services.print.printWithRetry({ data: bytesToBase64(manifestEscPos(parcels)), labels: 1 }, { mode, attempts: 1 });
           outputStatus.textContent = result.status === 'printed' ? '72mm manifest sent to POS80C.' : result.adapter?.startsWith('cloud') ? '72mm manifest queued in Cloud Print.' : '72mm manifest sent to POS80C.';
@@ -79,7 +108,7 @@ export function createManifestModule({ store, services }) {
       });
       a4.addEventListener('click', () => window.print());
       closeDelivered.addEventListener('click', () => {
-        const delivered = store.getState().parcels.filter((parcel) => parcel.status === 'delivered');
+        const delivered = store.getState().parcels.filter((parcel) => forDate(parcel) && parcel.status === 'delivered');
         if (!delivered.length) {
           outputStatus.textContent = 'No delivered parcels to close.';
           return;
@@ -106,7 +135,7 @@ export function createManifestModule({ store, services }) {
       thead.append(headRow);
       const body = document.createElement('tbody');
 
-      for (const parcel of state.parcels) {
+      for (const parcel of state.parcels.filter(forDate)) {
         const row = document.createElement('tr');
         const choose = document.createElement('input');
         choose.type = 'checkbox';

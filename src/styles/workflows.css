@@ -346,3 +346,5 @@ body { line-height: var(--leading-body); }
  .manifest-screen .manifest-outputs .button{flex:1 1 140px;min-height:44px;white-space:normal}
 }
 @media(max-width:420px){.manifest-screen .manifest-toolbar{gap:8px}.manifest-screen .manifest-toolbar .button{padding:10px 8px;white-space:normal;min-height:44px}.manifest-screen td{padding:10px 8px;gap:6px}}
+
+.manifest-date-bar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:16px;font-weight:600}.manifest-date-bar .select{flex:1;min-width:0;max-width:360px;min-height:44px}
