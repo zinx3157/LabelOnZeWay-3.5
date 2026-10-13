@@ -1,3 +1,4 @@
+import {deleteManifestParcels} from '../domain/manifest-delete.js';
 import { formatAr } from '../domain/money.js';
 import { PARCEL_STATUSES, updateParcelStatuses } from '../domain/manifest.js';
 import { bytesToBase64, manifestEscPos } from '../domain/escpos.js';
@@ -23,10 +24,17 @@ export function createManifestModule({ store, services }) {
         empty.className = 'table-card empty-state';
         empty.textContent = 'No parcels in the current manifest.';
         section.append(empty);
+        if(state.archive.some(p=>p.deletedFromManifest)){const open=action('Open Archive to restore deleted parcels');open.addEventListener('click',()=>{location.hash='#/archive'});section.append(open);}
         return section;
       }
 
       const selected = new Set();
+      const remove = ids => {
+        if(!ids.length)return;
+        if(!window.confirm(`Delete ${ids.length} parcel${ids.length===1?'':'s'} from the manifest? You can restore from Archive.`))return;
+        store.update(current=>deleteManifestParcels(current,ids));
+      };
+      const deleteSelected=action('Delete selected');deleteSelected.classList.add('danger-action');deleteSelected.disabled=true;deleteSelected.addEventListener('click',()=>remove([...selected]));
       const toolbar = document.createElement('div');
       toolbar.className = 'manifest-toolbar';
       const selection = document.createElement('span');
@@ -45,7 +53,7 @@ export function createManifestModule({ store, services }) {
         if (!selected.size) return;
         store.update((current) => ({ ...current, parcels: updateParcelStatuses(current.parcels, [...selected], status.value) }));
       });
-      toolbar.append(selection, status, apply);
+      toolbar.append(selection, status, apply, deleteSelected);
 
       const outputs = document.createElement('div');
       outputs.className = 'button-row';
@@ -109,6 +117,7 @@ export function createManifestModule({ store, services }) {
           if (choose.checked) selected.add(parcel.id); else selected.delete(parcel.id);
           selection.textContent = `${selected.size} selected`;
           apply.disabled = selected.size === 0;
+          deleteSelected.disabled=selected.size===0;
         });
         const chooseCell = document.createElement('td');
         chooseCell.dataset.label = 'Select';
@@ -157,7 +166,8 @@ export function createManifestModule({ store, services }) {
         });
         const pdf=action('Label PDF');pdf.setAttribute('aria-label',`Label PDF ${parcel.pickId}`);pdf.addEventListener('click',()=>services.share.downloadLabelCopy(parcel));
         const reprint=action('Reprint label');reprint.setAttribute('aria-label',`Reprint label ${parcel.pickId}`);reprint.addEventListener('click',async()=>{reprint.disabled=true;try{const result=await services.share.reprintLabelCopy(parcel,services.print);store.setState({ui:{...store.getState().ui,notice:result.status==='printed'?'Saved label sent to printer.':'Saved label queued for printing.'}})}catch(error){store.setState({ui:{...store.getState().ui,notice:error.message}})}finally{reprint.disabled=false}});
-        actionCell.append(edit,pdf,reprint);
+        const deleteOne=action('Delete');deleteOne.classList.add('danger-action');deleteOne.setAttribute('aria-label',`Delete ${parcel.pickId}`);deleteOne.addEventListener('click',()=>remove([parcel.id]));
+        actionCell.append(edit,pdf,reprint,deleteOne);
         row.append(actionCell);
         body.append(row);
       }
