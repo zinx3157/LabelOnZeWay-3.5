@@ -58,11 +58,11 @@ export function createManifestModule({ store, services }) {
         outputStatus.textContent = 'Sending manifest…';
         try {
           const parcels = store.getState().parcels.filter((parcel) => !selected.size || selected.has(parcel.id));
-          const mode = localStorage.getItem('lz35.print.pairingKey')?.trim() ? 'bridge' : 'auto';
+          const mode = 'auto';
           const result = await services.print.printWithRetry({ data: bytesToBase64(manifestEscPos(parcels)), labels: 1 }, { mode, attempts: 1 });
-          outputStatus.textContent = result.adapter?.startsWith('cloud')
+          outputStatus.textContent = result.status === 'printed' ? false : result.adapter?.startsWith('cloud')
             ? '72mm manifest queued in Cloud Print — awaiting the Mac agent.'
-            : '72mm manifest sent to POS80C through the Mac gateway.';
+            : '72mm manifest sent to POS80C.';
         } catch (error) {
           outputStatus.textContent = `Manifest print failed: ${error.message}`;
         } finally {

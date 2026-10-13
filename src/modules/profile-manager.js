@@ -38,6 +38,7 @@ export function renderProfileManager(state, store) {
         localStorage.setItem('lz.profile', id);
         store.setState({
           activeProfileId: id,
+          workspace: store.getState().workspace ? {...store.getState().workspace, profileId:id} : null,
           profileSettings: { ...store.getState().profileSettings, name: profile.name || profile.company || id },
           ui: { ...store.getState().ui, notice: `Active profile: ${profile.name || profile.company || id}` },
         });

@@ -815,7 +815,7 @@ export function createLabelModule({ store, services }) {
           const parcel = materialize(store.getState());
           try {
             const result = await services.print.printWithRetry({ data: bytesToBase64(labelEscPos(parcel, { trackingUrl: trackingUrl(parcel.trackingToken) })), labels: 1 }, { attempts: 2 });
-            print.textContent = result.adapter === 'cloud' ? 'Queued to cloud' : 'Printed';
+            print.textContent = result.adapter?.startsWith('cloud') ? 'Queued to cloud' : 'Printed';
           } catch (error) {
             print.textContent = 'Print failed';
             store.setState({ ui: { ...store.getState().ui, notice: error.message } });

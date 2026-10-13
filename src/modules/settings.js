@@ -108,7 +108,7 @@ export function createSettingsModule({ store, services }) {
       const printTitle = document.createElement('h2');
       printTitle.textContent = 'POS80C Printer';
       const printSub = document.createElement('p');
-      printSub.textContent = 'Automatic local/cloud printing with PDF fallback.';
+      printSub.textContent = 'Cloud printing through DDNS — no Mac bridge required.';
       identity.append(printTitle, printSub);
       const badge = document.createElement('span');
       badge.className = 'printer-status is-neutral';
@@ -178,7 +178,7 @@ export function createSettingsModule({ store, services }) {
           const output = await services.print.printWithRetry({ data: testReceipt(), labels: 1 }, { attempts: 2 });
           badge.textContent = 'Ready';
           badge.className = 'printer-status is-ready';
-          result.textContent = output.adapter === 'cloud' ? 'Test print queued through Cloud Print.' : 'Test print sent to POS80C.';
+          result.textContent = output.status === 'printed' ? 'Cloud relay confirmed the test print was sent.' : output.adapter?.startsWith('cloud') ? 'Test print queued through Cloud Print.' : 'Test print sent to POS80C.';
         } catch (error) {
           badge.textContent = 'Offline';
           badge.className = 'printer-status is-offline';
