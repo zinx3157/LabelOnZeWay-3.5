@@ -197,7 +197,7 @@ export function createSettingsModule({ store, services }) {
       toolsTitle.textContent = 'Team & automation';
       const toolsRow = document.createElement('div');
       toolsRow.className = 'button-row';
-      for (const [hash, label] of [['#/notify', 'Customer notifications'], ['#/settlements', 'COD settlements'], ['#/sync', 'Sync center']]) {
+      for (const [hash, label] of [['#/stock', 'Stock'], ['#/customers', 'Customers'], ['#/notify', 'Customer notifications'], ['#/settlements', 'COD settlements'], ['#/sync', 'Sync center']]) {
         const open = action(label);
         open.addEventListener('click', () => { location.hash = hash; });
         toolsRow.append(open);
