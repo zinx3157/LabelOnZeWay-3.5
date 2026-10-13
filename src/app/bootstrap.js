@@ -1,10 +1,10 @@
-import { createStore } from './store.js';
-import { createRouter } from './router.js';
-import { createModules } from '../modules/index.js';
-import { createServices } from '../services/index.js';
-import { createShell } from '../components/shell.js';
-import '../modules/batch-customer-picker.js';
-import { installSingleCustomerPicker } from '../modules/single-customer-picker.js';
+import { createStore } from './store.js?v=47';
+import { createRouter } from './router.js?v=47';
+import { createModules } from '../modules/index.js?v=47';
+import { createServices } from '../services/index.js?v=47';
+import { createShell } from '../components/shell.js?v=47';
+import '../modules/batch-customer-picker.js?v=47';
+import { installSingleCustomerPicker } from '../modules/single-customer-picker.js?v=47';
 
 export async function bootstrap(root) {
   if (!(root instanceof HTMLElement)) throw new Error('App root is required');

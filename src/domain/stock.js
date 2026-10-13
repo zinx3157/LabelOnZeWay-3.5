@@ -1,7 +1,7 @@
 // Stock maths and exports: pure helpers over inventory + movement records so
 // replenishment suggestions and valuation reports stay testable without a DOM.
-import { asNumber } from './money.js';
-import { csvDocument } from './csv.js';
+import { asNumber } from './money.js?v=47';
+import { csvDocument } from './csv.js?v=47';
 
 export const STOCK_MOVEMENT_REASONS = Object.freeze(['purchase', 'sale', 'adjustment', 'damage', 'return']);
 

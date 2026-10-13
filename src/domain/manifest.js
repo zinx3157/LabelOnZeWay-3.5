@@ -1,4 +1,4 @@
-import { asNumber } from './money.js';
+import { asNumber } from './money.js?v=47';
 
 export const PARCEL_STATUSES = Object.freeze(['ready','dispatch','in-transit','delivery','delivered','exception']);
 

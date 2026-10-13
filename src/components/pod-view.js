@@ -1,8 +1,8 @@
 // Proof-of-delivery UI pieces shared by tracking, claims and archive.
 // Capture is fully local: photo is downscaled in-canvas to protect the
 // localStorage budget, signature is a pointer-drawn canvas, GPS is opt-in.
-import { buildPod, describePod, podGpsLink, podIssues, POD_PHOTO_MAX_LENGTH } from '../domain/pod.js';
-import { action } from './form.js';
+import { buildPod, describePod, podGpsLink, podIssues, POD_PHOTO_MAX_LENGTH } from '../domain/pod.js?v=47';
+import { action } from './form.js?v=47';
 
 export function podViewer(pod) {
   const wrap = document.createElement('div');

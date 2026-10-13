@@ -1,20 +1,20 @@
-import { createLabelModule } from './label.js';
-import { createCustomersModule } from './customers.js';
-import { createManifestModule } from './manifest.js';
-import { createReconciliationModule } from './reconciliation.js';
-import { createBatchModule } from './batch.js';
-import { createTrackingModule } from './tracking.js';
-import { createArchiveModule } from './archive.js';
-import { createClaimsModule } from './claims.js';
-import { createSettingsModule } from './settings.js';
-import { createHomeModule } from './home.js';
-import { createReportsModule } from './reports.js';
-import { createProfilesModule } from './profiles.js';
-import { createStockModule } from './stock.js';
-import { createRunModule } from './run.js';
-import { createNotifyModule } from './notify.js';
-import { createSettlementsModule } from './settlements.js';
-import { createSyncModule } from './sync.js';
+import { createLabelModule } from './label.js?v=47';
+import { createCustomersModule } from './customers.js?v=47';
+import { createManifestModule } from './manifest.js?v=47';
+import { createReconciliationModule } from './reconciliation.js?v=47';
+import { createBatchModule } from './batch.js?v=47';
+import { createTrackingModule } from './tracking.js?v=47';
+import { createArchiveModule } from './archive.js?v=47';
+import { createClaimsModule } from './claims.js?v=47';
+import { createSettingsModule } from './settings.js?v=47';
+import { createHomeModule } from './home.js?v=47';
+import { createReportsModule } from './reports.js?v=47';
+import { createProfilesModule } from './profiles.js?v=47';
+import { createStockModule } from './stock.js?v=47';
+import { createRunModule } from './run.js?v=47';
+import { createNotifyModule } from './notify.js?v=47';
+import { createSettlementsModule } from './settlements.js?v=47';
+import { createSyncModule } from './sync.js?v=47';
 
 export function createModules({ store, services }) {
   return {

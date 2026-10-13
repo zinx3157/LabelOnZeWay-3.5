@@ -1,6 +1,6 @@
-import { action } from '../components/form.js';
-import { profileGroups } from '../domain/profiles.js';
-import { switchProfile } from '../services/profile-data.js';
+import { action } from '../components/form.js?v=47';
+import { profileGroups } from '../domain/profiles.js?v=47';
+import { switchProfile } from '../services/profile-data.js?v=47';
 export function renderProfileManager(state, store, services) {
   const card=document.createElement('article');card.className='workspace-card';
   const title=document.createElement('h2');title.textContent='Company Profiles';

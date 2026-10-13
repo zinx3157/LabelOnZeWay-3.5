@@ -1,4 +1,4 @@
-import { openCustomerPicker } from './batch-customer-picker.js';
+import { openCustomerPicker } from './batch-customer-picker.js?v=47';
 
 function singleCustomerFields(target) {
   const flow = target.closest('.single-scan-flow');

@@ -1,7 +1,7 @@
-import { action } from '../components/form.js';
-import { heading } from '../components/view.js';
-import { updateParcelStatuses } from '../domain/manifest.js';
-import { bytesToBase64, labelEscPos } from '../domain/escpos.js';
+import { action } from '../components/form.js?v=47';
+import { heading } from '../components/view.js?v=47';
+import { updateParcelStatuses } from '../domain/manifest.js?v=47';
+import { bytesToBase64, labelEscPos } from '../domain/escpos.js?v=47';
 
 export function createBatchModule({ store, services }) {
   return {

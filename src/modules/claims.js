@@ -1,7 +1,7 @@
-import { field, action } from '../components/form.js';
-import { heading, textStack } from '../components/view.js';
-import { makeId } from '../domain/ids.js';
-import { podViewer } from '../components/pod-view.js';
+import { field, action } from '../components/form.js?v=47';
+import { heading, textStack } from '../components/view.js?v=47';
+import { makeId } from '../domain/ids.js?v=47';
+import { podViewer } from '../components/pod-view.js?v=47';
 
 export function createClaimsModule({ store }) {
   return {
