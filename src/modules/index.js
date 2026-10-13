@@ -1,20 +1,20 @@
-import { createLabelModule } from './label.js?v=47';
-import { createCustomersModule } from './customers.js?v=47';
-import { createManifestModule } from './manifest.js?v=47';
-import { createReconciliationModule } from './reconciliation.js?v=47';
-import { createBatchModule } from './batch.js?v=47';
-import { createTrackingModule } from './tracking.js?v=47';
-import { createArchiveModule } from './archive.js?v=47';
-import { createClaimsModule } from './claims.js?v=47';
-import { createSettingsModule } from './settings.js?v=47';
-import { createHomeModule } from './home.js?v=47';
-import { createReportsModule } from './reports.js?v=47';
-import { createProfilesModule } from './profiles.js?v=47';
-import { createStockModule } from './stock.js?v=47';
-import { createRunModule } from './run.js?v=47';
-import { createNotifyModule } from './notify.js?v=47';
-import { createSettlementsModule } from './settlements.js?v=47';
-import { createSyncModule } from './sync.js?v=47';
+import { createLabelModule } from './label.js?v=48';
+import { createCustomersModule } from './customers.js?v=48';
+import { createManifestModule } from './manifest.js?v=48';
+import { createReconciliationModule } from './reconciliation.js?v=48';
+import { createBatchModule } from './batch.js?v=48';
+import { createTrackingModule } from './tracking.js?v=48';
+import { createArchiveModule } from './archive.js?v=48';
+import { createClaimsModule } from './claims.js?v=48';
+import { createSettingsModule } from './settings.js?v=48';
+import { createHomeModule } from './home.js?v=48';
+import { createReportsModule } from './reports.js?v=48';
+import { createProfilesModule } from './profiles.js?v=48';
+import { createStockModule } from './stock.js?v=48';
+import { createRunModule } from './run.js?v=48';
+import { createNotifyModule } from './notify.js?v=48';
+import { createSettlementsModule } from './settlements.js?v=48';
+import { createSyncModule } from './sync.js?v=48';
 
 export function createModules({ store, services }) {
   return {

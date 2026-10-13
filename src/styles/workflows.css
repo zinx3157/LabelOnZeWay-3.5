@@ -316,3 +316,33 @@ body { line-height: var(--leading-body); }
 .card strong { letter-spacing: -.005em; }
 .card-list { gap: var(--space-2); }
 .button-row { gap: var(--space-2); }
+
+/* Manifest: fit growing row actions without forcing a wider document. */
+.manifest-screen{width:100%;min-width:0}
+.manifest-screen .manifest-toolbar{grid-template-columns:minmax(90px,1fr) minmax(160px,240px) auto auto}
+.manifest-screen .manifest-outputs{margin-bottom:12px;align-items:center}
+.manifest-screen .manifest-outputs>span{flex:1 1 100%;overflow-wrap:anywhere}
+.manifest-screen .table-card{max-width:100%;min-width:0}
+.manifest-screen table{table-layout:fixed;min-width:0}
+.manifest-screen th,.manifest-screen td{padding:10px 8px;white-space:normal;overflow-wrap:anywhere;min-width:0}
+.manifest-screen th:nth-child(1){width:4%}.manifest-screen th:nth-child(2){width:10%}.manifest-screen th:nth-child(3){width:18%}.manifest-screen th:nth-child(4){width:5%}.manifest-screen th:nth-child(5){width:9%}.manifest-screen th:nth-child(6){width:9%}.manifest-screen th:nth-child(7){width:8%}.manifest-screen th:nth-child(8){width:11%}.manifest-screen th:nth-child(9){width:26%}
+.manifest-screen .manifest-row-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;min-width:0}
+.manifest-screen td[data-label="Actions"] .button{min-width:0;width:100%;padding:8px 6px;font-size:.78rem;white-space:normal;line-height:1.25}
+.manifest-screen td[data-label="Select"] input{width:auto}
+@media(max-width:1100px){
+ .manifest-screen .manifest-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .manifest-screen .manifest-toolbar>*{min-width:0;width:100%}
+ .manifest-screen .table-card{overflow:visible;background:transparent;border:0}
+ .manifest-screen table,.manifest-screen tbody{display:block;width:100%}
+ .manifest-screen thead{display:none}
+ .manifest-screen tbody{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:12px}
+ .manifest-screen tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin:0;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);overflow:hidden}
+ .manifest-screen td{display:flex;width:auto;justify-content:space-between;gap:8px;align-items:center;font-size:.86rem;border-bottom:1px solid var(--border)}
+ .manifest-screen td::before{content:attr(data-label);flex-shrink:0;color:var(--muted);font-size:.7rem;font-weight:700;text-transform:uppercase}
+ .manifest-screen td[data-label="Customer"],.manifest-screen td[data-label="Status"],.manifest-screen td[data-label="Actions"]{grid-column:1/-1}
+ .manifest-screen td[data-label="Actions"]{display:block;padding:10px;border:0}
+ .manifest-screen td[data-label="Actions"]::before{display:none}
+ .manifest-screen td[data-label="Actions"] .button{min-height:44px;font-size:.84rem}
+ .manifest-screen .manifest-outputs .button{flex:1 1 140px;min-height:44px;white-space:normal}
+}
+@media(max-width:420px){.manifest-screen .manifest-toolbar{gap:8px}.manifest-screen .manifest-toolbar .button{padding:10px 8px;white-space:normal;min-height:44px}.manifest-screen td{padding:10px 8px;gap:6px}}

@@ -1,6 +1,6 @@
-import { field, action } from '../components/form.js?v=47';
-import { bytesToBase64 } from '../domain/escpos.js?v=47';
-import { renderProfileManager } from './profile-manager.js?v=47';
+import { field, action } from '../components/form.js?v=48';
+import { bytesToBase64 } from '../domain/escpos.js?v=48';
+import { renderProfileManager } from './profile-manager.js?v=48';
 
 function heading(title, description) {
   const wrap = document.createElement('div');

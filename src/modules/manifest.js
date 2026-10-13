@@ -1,9 +1,9 @@
-import {deleteManifestParcels} from '../domain/manifest-delete.js?v=47';
-import { formatAr } from '../domain/money.js?v=47';
-import { PARCEL_STATUSES, updateParcelStatuses } from '../domain/manifest.js?v=47';
-import { bytesToBase64, manifestEscPos } from '../domain/escpos.js?v=47';
-import { action } from '../components/form.js?v=47';
-import { heading } from '../components/view.js?v=47';
+import {deleteManifestParcels} from '../domain/manifest-delete.js?v=48';
+import { formatAr } from '../domain/money.js?v=48';
+import { PARCEL_STATUSES, updateParcelStatuses } from '../domain/manifest.js?v=48';
+import { bytesToBase64, manifestEscPos } from '../domain/escpos.js?v=48';
+import { action } from '../components/form.js?v=48';
+import { heading } from '../components/view.js?v=48';
 
 function cell(label, value) {
   const td = document.createElement('td');
@@ -16,7 +16,7 @@ export function createManifestModule({ store, services }) {
   return {
     render(state) {
       const section = document.createElement('section');
-      section.className = 'screen';
+      section.className = 'screen manifest-screen';
       section.append(heading('Manifest', 'Unified operational manifest with bulk status updates.'));
 
       if (!state.parcels.length) {
@@ -56,7 +56,7 @@ export function createManifestModule({ store, services }) {
       toolbar.append(selection, status, apply, deleteSelected);
 
       const outputs = document.createElement('div');
-      outputs.className = 'button-row';
+      outputs.className = 'button-row manifest-outputs';
       const thermal = action('Print 72mm manifest');
       const a4 = action('Print A4');
       const closeDelivered = action('Close delivered');
@@ -69,9 +69,7 @@ export function createManifestModule({ store, services }) {
           const parcels = store.getState().parcels.filter((parcel) => !selected.size || selected.has(parcel.id));
           const mode = 'auto';
           const result = await services.print.printWithRetry({ data: bytesToBase64(manifestEscPos(parcels)), labels: 1 }, { mode, attempts: 1 });
-          outputStatus.textContent = result.status === 'printed' ? false : result.adapter?.startsWith('cloud')
-            ? '72mm manifest queued in Cloud Print — awaiting the Mac agent.'
-            : '72mm manifest sent to POS80C.';
+          outputStatus.textContent = result.status === 'printed' ? '72mm manifest sent to POS80C.' : result.adapter?.startsWith('cloud') ? '72mm manifest queued in Cloud Print.' : '72mm manifest sent to POS80C.';
         } catch (error) {
           outputStatus.textContent = `Manifest print failed: ${error.message}`;
         } finally {
@@ -167,7 +165,7 @@ export function createManifestModule({ store, services }) {
         const pdf=action('Label PDF');pdf.setAttribute('aria-label',`Label PDF ${parcel.pickId}`);pdf.addEventListener('click',()=>services.share.downloadLabelCopy(parcel));
         const reprint=action('Reprint label');reprint.setAttribute('aria-label',`Reprint label ${parcel.pickId}`);reprint.addEventListener('click',async()=>{reprint.disabled=true;try{const result=await services.share.reprintLabelCopy(parcel,services.print);store.setState({ui:{...store.getState().ui,notice:result.status==='printed'?'Saved label sent to printer.':'Saved label queued for printing.'}})}catch(error){store.setState({ui:{...store.getState().ui,notice:error.message}})}finally{reprint.disabled=false}});
         const deleteOne=action('Delete');deleteOne.classList.add('danger-action');deleteOne.setAttribute('aria-label',`Delete ${parcel.pickId}`);deleteOne.addEventListener('click',()=>remove([parcel.id]));
-        actionCell.append(edit,pdf,reprint,deleteOne);
+        const rowActions=document.createElement('div');rowActions.className='manifest-row-actions';rowActions.append(edit,pdf,reprint,deleteOne);actionCell.append(rowActions);
         row.append(actionCell);
         body.append(row);
       }

@@ -1,4 +1,4 @@
-import { t } from '../domain/i18n.js?v=47';
+import { t } from '../domain/i18n.js?v=48';
 
 export function heading(title, description, trailing = null) {
   const wrap = document.createElement('div');

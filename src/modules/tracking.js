@@ -1,9 +1,9 @@
-import { trackingMilestone } from '../domain/tracking.js?v=47';
-import { heading, textStack } from '../components/view.js?v=47';
-import { action, field } from '../components/form.js?v=47';
-import { podViewer, createPodCapture } from '../components/pod-view.js?v=47';
-import { buildPod } from '../domain/pod.js?v=47';
-import { timelineView } from '../components/timeline.js?v=47';
+import { trackingMilestone } from '../domain/tracking.js?v=48';
+import { heading, textStack } from '../components/view.js?v=48';
+import { action, field } from '../components/form.js?v=48';
+import { podViewer, createPodCapture } from '../components/pod-view.js?v=48';
+import { buildPod } from '../domain/pod.js?v=48';
+import { timelineView } from '../components/timeline.js?v=48';
 
 function publicTrackingUrl(token) {
   const url = new URL(location.href);

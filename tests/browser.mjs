@@ -74,6 +74,9 @@ try {
     assert.equal(await page.locator('.label-preview script').count(), 0, 'Customer input must never become executable markup');
     await page.getByRole('button', { name: 'Save label' }).click();
     await page.locator('table').waitFor();
+    const manifestFits=await page.evaluate(()=>({page:document.documentElement.scrollWidth<=document.documentElement.clientWidth,table:document.querySelector('.manifest-screen .table-card').scrollWidth<=document.querySelector('.manifest-screen .table-card').clientWidth+1}));
+    assert.equal(manifestFits.page,true,`${viewport.name} manifest fits page`);
+    assert.equal(manifestFits.table,true,`${viewport.name} manifest fits its container`);
     assert.match(await page.locator('body').innerText(), /UAT Customer/i);
     assert.equal(await page.locator('body script').count(), 1, 'Only the application module script should exist');
 
