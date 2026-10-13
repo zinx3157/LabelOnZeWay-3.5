@@ -1,9 +1,9 @@
-import { heading } from '../components/view.js?v=49';
-import { t } from '../domain/i18n.js?v=49';
-import { parcelStatusCounts, reconciliationTotals } from '../domain/manifest.js?v=49';
-import { formatAr } from '../domain/money.js?v=49';
-import { dailySeries } from '../domain/analytics.js?v=49';
-import { barChart, sparkline } from '../components/charts.js?v=49';
+import { heading } from '../components/view.js?v=50';
+import { t } from '../domain/i18n.js?v=50';
+import { parcelStatusCounts, reconciliationTotals } from '../domain/manifest.js?v=50';
+import { formatAr } from '../domain/money.js?v=50';
+import { dailySeries } from '../domain/analytics.js?v=50';
+import { barChart, sparkline } from '../components/charts.js?v=50';
 
 function card(label, value) {
   const item = document.createElement('article');

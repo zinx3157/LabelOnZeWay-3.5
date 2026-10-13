@@ -1,6 +1,6 @@
-import { savedLabelData } from '../domain/label-copy.js?v=49';
-import { labelEscPos, bytesToBase64 } from '../domain/escpos.js?v=49';
-import { labelPdfBytes } from '../domain/pdf.js?v=49';
+import { savedLabelData } from '../domain/label-copy.js?v=50';
+import { labelEscPos, bytesToBase64 } from '../domain/escpos.js?v=50';
+import { labelPdfBytes } from '../domain/pdf.js?v=50';
 
 function trackingUrl(token) {
   const url = new URL(location.href);

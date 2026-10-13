@@ -1,4 +1,4 @@
-import { bootstrap } from './app/bootstrap.js?v=49';
+import { bootstrap } from './app/bootstrap.js?v=50';
 
 const localSecureContext = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || localSecureContext)) {

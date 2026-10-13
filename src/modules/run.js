@@ -1,11 +1,11 @@
 // "Tournée du jour": the courier run sheet. One screen, thumb-sized targets,
 // a sticky collected-vs-expected bar and one-tap status advancement.
 
-import { heading } from '../components/view.js?v=49';
-import { field, action } from '../components/form.js?v=49';
-import { formatAr } from '../domain/money.js?v=49';
-import { runStops, runTotals, runCouriers, nextRunStatus, runStatusLabel, isoDay, stopMapUrl, stopTelUrl, stopAddress } from '../domain/run.js?v=49';
-import { waLink } from '../domain/notifications.js?v=49';
+import { heading } from '../components/view.js?v=50';
+import { field, action } from '../components/form.js?v=50';
+import { formatAr } from '../domain/money.js?v=50';
+import { runStops, runTotals, runCouriers, nextRunStatus, runStatusLabel, isoDay, stopMapUrl, stopTelUrl, stopAddress } from '../domain/run.js?v=50';
+import { waLink } from '../domain/notifications.js?v=50';
 
 function linkButton(href, label) {
   const link = document.createElement('a');

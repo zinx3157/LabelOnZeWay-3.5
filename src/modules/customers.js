@@ -1,5 +1,5 @@
-import { action, field } from '../components/form.js?v=49';
-import { heading } from '../components/view.js?v=49';
+import { action, field } from '../components/form.js?v=50';
+import { heading } from '../components/view.js?v=50';
 
 function clean(value) { return String(value ?? '').replace(/\s+/g, ' ').trim(); }
 function textKey(value) { return clean(value).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }

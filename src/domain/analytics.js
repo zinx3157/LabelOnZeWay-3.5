@@ -1,7 +1,7 @@
 // Pure read models for the inline SVG charts. Everything here derives from
 // the local parcel list so no new storage or sync surface is introduced.
 
-import { isoDay } from './run.js?v=49';
+import { isoDay } from './run.js?v=50';
 
 function deliveredRecords(state) {
   return [...(state?.parcels || []), ...(state?.archive || [])].filter((parcel) => parcel && parcel.status === 'delivered');

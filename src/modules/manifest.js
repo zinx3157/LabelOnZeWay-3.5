@@ -1,9 +1,9 @@
-import {deleteManifestParcels} from '../domain/manifest-delete.js?v=49';
-import { formatAr } from '../domain/money.js?v=49';
-import { PARCEL_STATUSES, updateParcelStatuses } from '../domain/manifest.js?v=49';
-import { bytesToBase64, manifestEscPos } from '../domain/escpos.js?v=49';
-import { action } from '../components/form.js?v=49';
-import { heading } from '../components/view.js?v=49';
+import {deleteManifestParcels} from '../domain/manifest-delete.js?v=50';
+import { formatAr } from '../domain/money.js?v=50';
+import { PARCEL_STATUSES, updateParcelStatuses } from '../domain/manifest.js?v=50';
+import { bytesToBase64, manifestEscPos } from '../domain/escpos.js?v=50';
+import { action } from '../components/form.js?v=50';
+import { heading } from '../components/view.js?v=50';
 
 function cell(label, value) {
   const td = document.createElement('td');

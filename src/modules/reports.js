@@ -1,9 +1,9 @@
-import { heading } from '../components/view.js?v=49';
-import { CSV_BOM, csvDocument } from '../domain/csv.js?v=49';
-import { action } from '../components/form.js?v=49';
-import { formatAr } from '../domain/money.js?v=49';
-import { agingBuckets, exceptionRate } from '../domain/analytics.js?v=49';
-import { barChart } from '../components/charts.js?v=49';
+import { heading } from '../components/view.js?v=50';
+import { CSV_BOM, csvDocument } from '../domain/csv.js?v=50';
+import { action } from '../components/form.js?v=50';
+import { formatAr } from '../domain/money.js?v=50';
+import { agingBuckets, exceptionRate } from '../domain/analytics.js?v=50';
+import { barChart } from '../components/charts.js?v=50';
 
 function download(name, type, content) {
   const blob = new Blob([content], { type });

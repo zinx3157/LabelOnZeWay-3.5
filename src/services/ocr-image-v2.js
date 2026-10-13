@@ -1,4 +1,4 @@
-import { extractContact } from './ocr.js?v=49';
+import { extractContact } from './ocr.js?v=50';
 
 function numericText(value = '') {
   return String(value)
