@@ -1,5 +1,5 @@
-import { heading, textStack } from '../components/view.js?v=51';
-import { action } from '../components/form.js?v=51';
+import { heading, textStack } from '../components/view.js?v=52';
+import { action } from '../components/form.js?v=52';
 
 function summarize(payload) {
   if (!payload || typeof payload !== 'object') return '—';

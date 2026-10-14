@@ -1,7 +1,7 @@
-import {restoreArchivedParcel} from '../domain/manifest-delete.js?v=51';
-import { action, field } from '../components/form.js?v=51';
-import { heading, textStack } from '../components/view.js?v=51';
-import { podViewer } from '../components/pod-view.js?v=51';
+import {restoreArchivedParcel} from '../domain/manifest-delete.js?v=52';
+import { action, field } from '../components/form.js?v=52';
+import { heading, textStack } from '../components/view.js?v=52';
+import { podViewer } from '../components/pod-view.js?v=52';
 
 export function createArchiveModule({ store,services }) {
   return {

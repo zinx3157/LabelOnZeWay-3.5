@@ -1,9 +1,9 @@
-import { heading, textStack } from '../components/view.js?v=51';
-import { field, action } from '../components/form.js?v=51';
-import { formatAr } from '../domain/money.js?v=51';
-import { buildSettlementSheet, createSettlement, csvSettlements, settlementIsBalanced } from '../domain/settlements.js?v=51';
-import { settlementEscPos, bytesToBase64 } from '../domain/escpos.js?v=51';
-import { CSV_BOM } from '../domain/csv.js?v=51';
+import { heading, textStack } from '../components/view.js?v=52';
+import { field, action } from '../components/form.js?v=52';
+import { formatAr } from '../domain/money.js?v=52';
+import { buildSettlementSheet, createSettlement, csvSettlements, settlementIsBalanced } from '../domain/settlements.js?v=52';
+import { settlementEscPos, bytesToBase64 } from '../domain/escpos.js?v=52';
+import { CSV_BOM } from '../domain/csv.js?v=52';
 
 const METHODS = ['cash', 'mobile money', 'bank'];
 

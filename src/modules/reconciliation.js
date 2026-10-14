@@ -1,6 +1,6 @@
-import { heading } from '../components/view.js?v=51';
-import { reconciliationTotals } from '../domain/manifest.js?v=51';
-import { formatAr } from '../domain/money.js?v=51';
+import { heading } from '../components/view.js?v=52';
+import { reconciliationTotals } from '../domain/manifest.js?v=52';
+import { formatAr } from '../domain/money.js?v=52';
 
 export function createReconciliationModule() {
   return {

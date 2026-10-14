@@ -1,6 +1,6 @@
-import { savedLabelData } from '../domain/label-copy.js?v=51';
-import { labelEscPos, bytesToBase64 } from '../domain/escpos.js?v=51';
-import { labelPdfBytes } from '../domain/pdf.js?v=51';
+import { savedLabelData } from '../domain/label-copy.js?v=52';
+import { labelEscPos, bytesToBase64 } from '../domain/escpos.js?v=52';
+import { labelPdfBytes } from '../domain/pdf.js?v=52';
 
 function trackingUrl(token) {
   const url = new URL(location.href);
@@ -33,6 +33,6 @@ export function createShareService() {
   }
 
   function downloadLabelCopy(parcel){const file=new File([labelPdfBytes(savedLabelData(parcel))],`${parcel.pickId||'label'}-copy.pdf`,{type:'application/pdf'});downloadFile(file);return{fileName:file.name};}
-  async function reprintLabelCopy(parcel,print){const data=parcel.labelCopy?.escposBase64||bytesToBase64(labelEscPos(savedLabelData(parcel),{trackingUrl:trackingUrl(parcel.trackingToken)}));return print.printWithRetry({data,labels:1},{attempts:1});}
+  async function reprintLabelCopy(parcel,print){const data=(parcel.labelCopy?.addressLayoutVersion===2?parcel.labelCopy.escposBase64:null)||bytesToBase64(labelEscPos(savedLabelData(parcel),{trackingUrl:trackingUrl(parcel.trackingToken)}));return print.printWithRetry({data,labels:1},{attempts:1});}
   return { shareParcel, trackingUrl,downloadLabelCopy,reprintLabelCopy };
 }

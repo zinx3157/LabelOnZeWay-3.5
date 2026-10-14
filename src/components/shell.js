@@ -1,4 +1,4 @@
-import { t, setLang, getLang } from '../domain/i18n.js?v=51';
+import { t, setLang, getLang } from '../domain/i18n.js?v=52';
 const PRIMARY = [
   ['home','Home'],['label','New Label'],['manifest','Manifest'],['batch','Batch'],['tracking','Tracking'],['customers','Customers'],['stock','Stock']
 ];

@@ -1,7 +1,7 @@
-import {heading} from '../components/view.js?v=51';
-import {field,action} from '../components/form.js?v=51';
-import {profileGroups,activeProfileId} from '../domain/profiles.js?v=51';
-import {saveProfileData,switchProfile} from '../services/profile-data.js?v=51';
+import {heading} from '../components/view.js?v=52';
+import {field,action} from '../components/form.js?v=52';
+import {profileGroups,activeProfileId} from '../domain/profiles.js?v=52';
+import {saveProfileData,switchProfile} from '../services/profile-data.js?v=52';
 export function createProfilesModule({store,services}) {
  return {render(state){
   const section=document.createElement('section');section.className='screen';section.append(heading('Profiles','Company details and separate operational data.'));

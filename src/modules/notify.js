@@ -1,6 +1,6 @@
-import { heading, textStack } from '../components/view.js?v=51';
-import { field, action } from '../components/form.js?v=51';
-import { buildNotificationQueue, DEFAULT_NOTIFY_TEMPLATES, NOTIFY_KINDS } from '../domain/notifications.js?v=51';
+import { heading, textStack } from '../components/view.js?v=52';
+import { field, action } from '../components/form.js?v=52';
+import { buildNotificationQueue, DEFAULT_NOTIFY_TEMPLATES, NOTIFY_KINDS } from '../domain/notifications.js?v=52';
 
 export function createNotifyModule({ store }) {
   return {

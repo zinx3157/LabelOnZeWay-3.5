@@ -1,10 +1,10 @@
-import { printedLabelData } from '../domain/label-copy.js?v=51';
-import { field, action } from '../components/form.js?v=51';
-import { heading } from '../components/view.js?v=51';
-import { makeId, makePickId } from '../domain/ids.js?v=51';
-import { calculateCollect, formatAr } from '../domain/money.js?v=51';
-import { makeTrackingToken } from '../domain/tracking.js?v=51';
-import { bytesToBase64, labelEscPos } from '../domain/escpos.js?v=51';
+import { printedLabelData } from '../domain/label-copy.js?v=52';
+import { field, action } from '../components/form.js?v=52';
+import { heading } from '../components/view.js?v=52';
+import { makeId, makePickId } from '../domain/ids.js?v=52';
+import { calculateCollect, formatAr } from '../domain/money.js?v=52';
+import { makeTrackingToken } from '../domain/tracking.js?v=52';
+import { bytesToBase64, labelEscPos } from '../domain/escpos.js?v=52';
 
 function emptyDraft() {
   return { step: 1, customerId: null, customer: { name: '', phone: '', address: '' }, parcel: { qty: 1, unitPrice: 0, collect: 0, deliveryCharge: 0, notes: '' } };
@@ -651,7 +651,7 @@ function renderBatchScan({ panel, state, services, store, batchState }) {
       approved.forEach((item) => {
         const built = buildBatchParcel(item, current, customers, parcels);
         customers = built.customers;
-        built.parcel.labelCopy={savedAt:new Date().toISOString(),parcel:printedLabelData(built.parcel),escposBase64:bytesToBase64(labelEscPos(built.parcel,{trackingUrl:trackingUrl(built.parcel.trackingToken)}))};
+        built.parcel.labelCopy={addressLayoutVersion:2,savedAt:new Date().toISOString(),parcel:printedLabelData(built.parcel),escposBase64:bytesToBase64(labelEscPos(built.parcel,{trackingUrl:trackingUrl(built.parcel.trackingToken)}))};
         parcels.push(built.parcel);
         item.parcelId = built.parcel.id;
         item.status = 'created';
@@ -832,7 +832,7 @@ export function createLabelModule({ store, services }) {
             createdAt: existing?.createdAt || new Date().toISOString(),
             modifiedAt: new Date().toISOString(),
           };
-          parcel.labelCopy={savedAt:new Date().toISOString(),parcel:printedLabelData(parcel),escposBase64:bytesToBase64(labelEscPos(parcel,{trackingUrl:trackingUrl(parcel.trackingToken)}))};
+          parcel.labelCopy={addressLayoutVersion:2,savedAt:new Date().toISOString(),parcel:printedLabelData(parcel),escposBase64:bytesToBase64(labelEscPos(parcel,{trackingUrl:trackingUrl(parcel.trackingToken)}))};
           return parcel;
         };
         print.addEventListener('click', async () => {

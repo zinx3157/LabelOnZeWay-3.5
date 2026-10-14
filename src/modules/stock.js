@@ -1,9 +1,9 @@
-import { heading } from '../components/view.js?v=51';
-import { field, action } from '../components/form.js?v=51';
-import { formatAr } from '../domain/money.js?v=51';
-import { lowStockItems, suggestReorder, csvStock, csvMovements, STOCK_MOVEMENT_REASONS } from '../domain/stock.js?v=51';
-import { t } from '../domain/i18n.js?v=51';
-import { CSV_BOM } from '../domain/csv.js?v=51';
+import { heading } from '../components/view.js?v=52';
+import { field, action } from '../components/form.js?v=52';
+import { formatAr } from '../domain/money.js?v=52';
+import { lowStockItems, suggestReorder, csvStock, csvMovements, STOCK_MOVEMENT_REASONS } from '../domain/stock.js?v=52';
+import { t } from '../domain/i18n.js?v=52';
+import { CSV_BOM } from '../domain/csv.js?v=52';
 
 function profileId(state) {
   return String(state.activeProfileId || state.workspace?.profileId || 'ps_default');

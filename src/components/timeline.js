@@ -2,7 +2,7 @@
 // stepper, plus an optional WhatsApp contact button when the profile
 // publishes a support number.
 
-import { waLink, normalizeMadagascarWhatsApp } from '../domain/notifications.js?v=51';
+import { waLink, normalizeMadagascarWhatsApp } from '../domain/notifications.js?v=52';
 
 export const TIMELINE_STEPS = [
   ['ready', 'Ready'],

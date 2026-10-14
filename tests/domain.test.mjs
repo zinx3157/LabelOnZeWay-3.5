@@ -333,3 +333,11 @@ test('i18n switches UI chrome to Malagasy and passes unknown strings through', (
   assert.ok(TRANSLATED_KEYS.length >= 40, 'chrome dictionary must cover nav + headings');
   setLang('en');
 });
+
+ test('Thermal labels retain addresses beyond three lines including long words', () => {
+ const address = 'First building near the market entrance opposite the large supermarket behind the pharmacy proceed along the small road towards the blue gate next to the school FINALADDRESS ' + 'X'.repeat(100) + ' ENDADDRESS';
+ const output = new TextDecoder().decode(labelEscPos({ pickId:'TEST',qty:1,customer:{name:'Test',address},collect:0 }));
+ assert.match(output, /FINALADDRESS/);
+ assert.match(output, /ENDADDRESS/);
+ assert.ok(output.includes('X'.repeat(42)));
+ });
